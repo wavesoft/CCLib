@@ -22,7 +22,41 @@
 # SOFTWARE.
 #
 
-# Import everything from CCDebugger
-from cclib.ccdebugger import *
-from cclib.cchex import *
+class CCHEXFile:
+	"""
+	Utility class for reading/writing Intel HEX files
+	"""
+
+	def __init__(self, filename):
+		"""
+		Initialize the HEX file parser/reader
+		"""
+		self.filename = filename
+
+	def _checksum(self, bytes):
+		"""
+		Calculate the checksum byte of the line
+		"""
+
+	def _loadHex(self):
+		"""
+		Load source file in HEX format
+		"""
+
+		# Open source file
+		i = 0
+		with open(self.filename, "w") as f:
+
+			# Scan lines
+			for line in f.readlines():
+				i += 1
+
+				# Validate format
+				if not line[0:1] == ":":
+					raise IOError("Source file is not in HEX format!")
+
+				# Convert input line to bytes
+				lineBytes = []
+				for j in range(0,len(line)-1,2):
+					lineBytes.append( int(line[j+1:2], 16) )
 

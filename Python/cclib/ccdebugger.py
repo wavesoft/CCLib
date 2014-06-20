@@ -73,14 +73,13 @@ class CCDebugger:
 		try:
 			self.ser = serial.Serial(port, timeout=1)
 		except:
-			print "Could not open port %s" % port
-			return
+			raise IOError("Could not open port %s" % port)
 
 		# Ping
 		if self.ping():
 			print "Using CCDebugger on port %s" % self.ser.name 
 		else:
-			print "Could not find CCDebugger on port %s" % self.ser.name
+			raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
 
 		# Get chip info & ID
 		self.chipID = self.getChipID()
@@ -272,29 +271,6 @@ class CCDebugger:
 	# Data reading
 	###############################################
 
-	def readCODE( self, offset, size ):
-		"""
-		Read any size of buffer from the XDATA+0x8000 (code-mapped) region
-		"""
-
-		# Pick the code bank this code chunk belongs to
-
-		# Setup DPTR
-		a = self.instri( 0x90, offset )		# MOV DPTR,#data16
-
-		# Prepare ans array
-		ans = []
-
-		# Read bytes
-		for i in range(0, size):
-			a = self.instr ( 0xE4 )			# CLR A
-			a = self.instr ( 0x93 )			# MOVC A,@A+DPTR
-			ans.append(a)
-			a = self.instr ( 0xA3 )			# INC DPTR
-
-		# Return ans
-		return ans
-
 	def readXDATA( self, offset, size ):
 		"""
 		Read any size of buffer from the XDATA region
@@ -332,6 +308,22 @@ class CCDebugger:
 		# Return bytes written
 		return len(bytes)
 
+	def readCODE( self, offset, size ):
+		"""
+		Read any size of buffer from the XDATA+0x8000 (code-mapped) region
+		"""
+
+		# Pick the code bank this code chunk belongs to
+		fBank = int(offset / 0x8000 )
+		self.selectXDATABank( fBank )
+
+		# Recalibrate offset
+		offset -= fBank * 0x8000
+
+		# Read XDATA-mapped CODE region
+		return self.readXDATA( 0x8000 + offset, size )
+
+
 	def getRegister( self, reg ):
 		"""
 		Return the value of the given register
@@ -346,9 +338,11 @@ class CCDebugger:
 
 	def selectXDATABank(self, bank):
 		"""
-		Pick the XDATA bank
+		Select XDATA bank from the Memory Arbiter Control register
 		"""
-		return self.setRegister( 0xC7, bank & 0x07 )
+		a = self.getRegister( 0xC7 )
+		a = (a & 0xF8) | (bank & 0x07)
+		return self.setRegister( 0xC7, a )
 
 	def selectFlashBank(self, bank):
 		"""
@@ -377,23 +371,64 @@ class CCDebugger:
 		# Return serial
 		return serial
 
-	def getInfoPage(self):
-
-		# Read XDATA
-		data = self.readXDATA( 0x7800, 57 )
-
-		# Get license key
-
 	def getChipInfo(self):
+		"""
+		Analyze chip info registers
+		"""
 
 		# Get chip info registers
 		chipInfo = self.readXDATA(0x6276, 2)
 
 		# Extract the useful info
 		return {
-			'flash' : pow(2, 4 + ((chipInfo[0] & 0x70) >> 4)),
-			'usb'	: (chipInfo[0] & 0x08) != 0,
+			'flash' : pow(2, 4 + ((chipInfo[0] & 0x70) >> 4)), # in Kb
+			'usb'	: (chipInfo[0] & 0x08) != 0, # in Kb
 			'sram'	: (chipInfo[1] & 0x07) + 1
+		}
+
+	def getInfoPage(self):
+		"""
+		Return the read-only information page (2kb)
+		"""
+
+		# Read XDATA
+		data = self.readXDATA( 0x7800, 0x800 )
+
+		# Get license key
+		return data
+
+	def getBLEInfoPage(self):
+		"""
+		Return the Bluegiga information page (last)
+		"""
+
+		# Read the last 64 bytes from the last FLASH page
+		data = self.readCODE( 0x1ffc0, 0x40 )
+
+		# Get the information page
+		return data
+
+	def getBLEInfo(self):
+		"""
+		Return the translated Bluegiga information page (last)
+		"""
+
+		# Get page data
+		page = self.getBLEInfoPage()
+
+		# Convert license to string
+		strLic = "".join( "%02x" % x for x in page[7:39] )
+
+		# Convert address to string
+		strBTAddr = "".join( "%02x:" % x for x in page[42:48] )
+		strBTAddr = strBTAddr[0:len(strBTAddr)-1]
+
+		# Return translated information
+		return {
+			"license" : strLic,
+			"hwver"   : page[39],
+			"btaddr"  : strBTAddr,
+			"lockbits": page[48:64]
 		}
 
 	###############################################
@@ -415,8 +450,12 @@ class CCDebugger:
 		self.writeConfig(a)
 
 	def configDMAChannel(self, index, srcAddr, dstAddr, trigger, vlen=0, tlen=1, 
-		word=False, transferMode=0, srcInc=0, dstInc=0, interrupt=False, m8=True, priority=0, memBase=0x1000):
-		
+		word=False, transferMode=0, srcInc=0, dstInc=0, interrupt=False, m8=True, 
+		priority=0, memBase=0x1000):
+		"""
+		Create a DMA buffer and place it in memory
+		"""
+
 		# Calculate numeric flags
 		nword = 0
 		if word:
@@ -472,6 +511,9 @@ class CCDebugger:
 			self.instr( 0x75, 0xD3, cHigh ) # MOV direct,#data @ DMA1CFGH
 
 	def armDMAChannel(self, index):
+		"""
+		Arm a DMA channel (index in 0-4)
+		"""
 
 		# Get DMAARM state
 		a = self.getRegister(0xD6) # MOV A,direct @ DMAARM
@@ -485,6 +527,9 @@ class CCDebugger:
 		time.sleep(0.01)
 
 	def disarmDMAChannel(self, index):
+		"""
+		Disarm a DMA channel (index in 0-4)
+		"""
 
 		# Get DMAARM state
 		a = self.getRegister( 0xD6 )
@@ -497,6 +542,9 @@ class CCDebugger:
 		self.setRegister( 0xD6, a )
 
 	def isDMAIRQ(self, index):
+		"""
+		Check if DMA IRQ flag is set (index in 0-4)
+		"""
 
 		# Get DMAARM state
 		a = self.getRegister( 0xD1 )
@@ -508,6 +556,9 @@ class CCDebugger:
 		return ((a & bit) != 0)
 
 	def clearDMAIRQ(self, index):
+		"""
+		Clear DMA IRQ flag (index in 0-4)
+		"""
 
 		# Get DMAIRQ state
 		a = self.getRegister( 0xD1 )
@@ -524,6 +575,9 @@ class CCDebugger:
 	###############################################
 
 	def setFlashWordOffset(self, address):
+		"""
+		Set the flash address offset in FADDRH:FADDRL
+		"""
 
 		# Split address in high/low order bytes
 		cHigh = (address >> 8) & 0xFF
@@ -532,40 +586,37 @@ class CCDebugger:
 		# Place in FADDRH:FADDRL
 		self.writeXDATA( 0x6271, [cLow, cHigh])
 
-	def setFlashWrite(self, write):
-
-		# Set flash write status
-		if write:
-			self.writeXDATA(0x6270, [0x2])
-		else:
-			self.writeXDATA(0x6270, [0x0])
-
-	def writeFlashData(self, data):
-
-		self.writeXDATA(0x6273, [data[0]])
-		self.writeXDATA(0x6273, [data[1]])
-		self.writeXDATA(0x6273, [data[2]])
-		self.writeXDATA(0x6273, [data[3]])
-
 	def isFlashFull(self):
+		"""
+		Check if the FULL bit is set in the flash register
+		"""
 
 		# Read flash status register
 		a = self.readXDATA(0x6270, 1)
 		return (a[0] & 0x40 != 0)
 
 	def isFlashBusy(self):
+		"""
+		Check if the BUSY bit is set in the flash register
+		"""
 
 		# Read flash status register
 		a = self.readXDATA(0x6270, 1)
 		return (a[0] & 0x80 != 0)
 
 	def isFlashAbort(self):
+		"""
+		Check if the ABORT bit is set in the flash register
+		"""
 
 		# Read flash status register
 		a = self.readXDATA(0x6270, 1)
 		return (a[0] & 0x20 != 0)
 
 	def setFlashWrite(self):
+		"""
+		Set the WRITE bit in the flash control register
+		"""
 
 		# Set flash WRITE bit
 		a = self.readXDATA(0x6270, 1)
@@ -573,13 +624,21 @@ class CCDebugger:
 		return self.writeXDATA(0x6270, a)
 
 	def setFlashErase(self):
+		"""
+		Set the ERASE bit in the flash control register
+		"""
 
 		# Set flash ERASE bit
 		a = self.readXDATA(0x6270, 1)
 		a[0] |= 0x01
 		return self.writeXDATA(0x6270, a)
 
-	def writeFlash(self, offset, data, erase=False, blockSize=0x800, flashPageSize=0x800):
+	def writeCODE(self, offset, data, erase=False, blockSize=0x800, flashPageSize=0x800):
+		"""
+		Fully automated function for writing the Flash memory.
+
+		WARNING: This requires DMA operations to be unpaused ( use: self.pauseDMA(False) )
+		"""
 
 		# Prepare DMA-0 for DEBUG -> RAM (using DBG_BW trigger)
 		self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=blockSize, srcInc=0, dstInc=1, priority=1 )
@@ -599,7 +658,6 @@ class CCDebugger:
 				self.configDMAChannel( 1, 0x0000, 0x6273, 0x12, tlen=iLen, srcInc=1, dstInc=0, priority=2, interrupt=True )
 
 			# Upload to RAM through DMA-0
-			print "Writing %i bytes to DMA-0" % iLen
 			self.armDMAChannel(0)
 			self.brustWrite( data[iOfs:iLen] )
 
@@ -612,30 +670,24 @@ class CCDebugger:
 			cHigh = (fPage << 1) | ((fOffset << 8) & 0x01)
 			cLow = fOffset & 0xFF
 
-			print "Preparing Flash Page %i:%i" % (fPage, fOffset)
 			# Set flash base address (FADDRL:FADDRH)
 			self.writeXDATA( 0x6271, [cLow, cHigh] )
 
 			# Check if we should erase page first
 			if erase:
-				print "Issuing ERASE"
 				# Set the erase bit
 				self.setFlashErase()
 				# Wait until flash is not busy any more
 				while self.isFlashBusy():
-					print "Waiting..."
 					time.sleep(0.010)
 
 			# Upload to FLASH through DMA-1
-			print "Writing %i bytes to DMA-1" % iLen
 			self.armDMAChannel(1)
 			self.setFlashWrite()
 
 			# Wait until DMA-1 raises interrupt
 			while not self.isDMAIRQ(1):
 				time.sleep(0.010)
-
-			print "DMA IRQ-d"
 
 			# Clear DMA IRQ flag
 			self.clearDMAIRQ(1)
