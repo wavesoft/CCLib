@@ -408,6 +408,52 @@ byte CCDebugger::exit()
 
   return 0;
 }
+/**
+ * Get debug configuration
+ */
+byte CCDebugger::getConfig() {
+  if (!active) {
+    errorFlag = 1;
+    return 0;
+  }
+  if (!inDebugMode) {
+    errorFlag = 2;
+    return 0;
+  }
+
+  byte bAns;
+
+  write( 0x20 ); // RD_CONFIG
+  switchRead();
+  bAns = read(); // Config
+  switchWrite(); 
+
+  return bAns;
+}
+
+/**
+ * Set debug configuration
+ */
+byte CCDebugger::setConfig( byte config ) {
+  if (!active) {
+    errorFlag = 1;
+    return 0;
+  }
+  if (!inDebugMode) {
+    errorFlag = 2;
+    return 0;
+  }
+
+  byte bAns;
+
+  write( 0x18 ); // WR_CONFIG
+  write( config );
+  switchRead();
+  bAns = read(); // Config
+  switchWrite();
+
+  return bAns;
+}
 
 /**
  * Invoke a debug instruction with 1 opcode

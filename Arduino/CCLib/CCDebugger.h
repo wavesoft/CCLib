@@ -98,6 +98,16 @@ public:
    */
   byte step();
 
+  /**
+   * Get debug configuration
+   */
+  byte getConfig();
+
+  /**
+   * Set debug configuration
+   */
+  byte setConfig( byte config );
+
   ////////////////////////////
   // Low-level interaction
   ////////////////////////////

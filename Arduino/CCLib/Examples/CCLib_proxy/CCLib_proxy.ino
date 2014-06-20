@@ -1,6 +1,9 @@
 /*
- 
+ /////////////////////////////////////////////////////////////////////////////// 
  This example demonstrates the use of the CCDebugger class from CCLib.
+ 
+ This is the firmware you must flash in your Arduino/Teensy if you want to use
+ the python library that comes with this project.
  
  It provides a low-level passthrough proxy for driving the entire CC.Debugger 
  process from the computer.
@@ -21,7 +24,10 @@
  For the RST Pin:
  
  <CC_DC> --[ 100k ]-- {RST} --[ 200k ]-- <GND>
- 
+
+ ///////////////////////////////////////////////////////////////////////////////
+ (C) Copyright 2014, Ioannis Charalampidis - Licensed under MIT License.
+ ///////////////////////////////////////////////////////////////////////////////
  */
  
 // Include the CCDebugger
@@ -44,16 +50,20 @@ int CC_DC    = 17;
 #define   CMD_EXEC_1   byte(0x07)
 #define   CMD_EXEC_2   byte(0x08)
 #define   CMD_EXEC_3   byte(0x09)
+#define   CMD_BRUSTWR  byte(0x0A)
+#define   CMD_RD_CFG   byte(0x0B)
+#define   CMD_WR_CFG   byte(0x0C)
+
 #define   CMD_PING     byte(0xF0)
 #define   ANS_OK       byte(0x01)
 #define   ANS_ERROR    byte(0x02)
 
 // Initialize properties
 CCDebugger * dbg;
-byte inByte;
+byte inByte, bAns;
 byte c1, c2, c3;
-char cAns;
 unsigned short s1;
+int iLen, iRead;
 
 /**
  * Initialize debugger
@@ -109,13 +119,13 @@ void loop() {
     Serial.write(ANS_OK);
     
   } else if (inByte == CMD_ENTER) {
-    cAns = dbg->enter();
+    bAns = dbg->enter();
     if (handleError()) return;
     Serial.write(ANS_OK);
     Serial.flush();
 
   } else if (inByte == CMD_EXIT) {
-    cAns = dbg->exit();
+    bAns = dbg->exit();
     if (handleError()) return;
     Serial.write(ANS_OK);
     
@@ -140,31 +150,84 @@ void loop() {
     Serial.write( c1 );
 
   } else if (inByte == CMD_STEP) {
-    cAns = dbg->step();
+    bAns = dbg->step();
     if (handleError()) return;
     Serial.write(ANS_OK);
-    Serial.write(cAns);
+    Serial.write(bAns);
 
   } else if (inByte == CMD_EXEC_1) {
     
-    cAns = dbg->exec( c1 );
+    bAns = dbg->exec( c1 );
     if (handleError()) return;
     Serial.write(ANS_OK);
-    Serial.write(cAns);
+    Serial.write(bAns);
 
   } else if (inByte == CMD_EXEC_2) {
     
-    cAns = dbg->exec( c1, c2 );
+    bAns = dbg->exec( c1, c2 );
     if (handleError()) return;
     Serial.write(ANS_OK);
-    Serial.write(cAns);
+    Serial.write(bAns);
 
   } else if (inByte == CMD_EXEC_3) {    
-    cAns = dbg->exec( c1, c2, c3 );
+    bAns = dbg->exec( c1, c2, c3 );
     if (handleError()) return;
     Serial.write(ANS_OK);
-    Serial.write(cAns);
+    Serial.write(bAns);
+  
+  } else if (inByte == CMD_BRUSTWR) {
     
+    // Calculate the size of the incoming brust
+    iLen = (c1 << 8) | c2;
+    
+    // Validate length
+    if (iLen > 2048) {
+      Serial.write(ANS_ERROR);
+      Serial.write(3);
+      Serial.flush();
+      return;
+    }
+    
+    // Confirm transfer
+    Serial.write(ANS_OK);
+    Serial.flush();
+    
+    // Prepare for brust-write
+    dbg->write( 0x80 | (c1 & 0x07) ); // High-order bits
+    dbg->write( c2 ); // Low-order bits
+    
+    // Start serial loop
+    iRead = 0;
+    while (iRead < iLen) {
+      if (Serial.available() >= 1) {
+        inByte = Serial.read();
+        dbg->write(inByte);
+        iRead++;
+      }
+    }
+    
+    // Read debug status
+    dbg->switchRead();
+    bAns = dbg->read();
+    dbg->switchWrite();
+
+    // Handle response    
+    if (handleError()) return;
+    Serial.write(ANS_OK);
+    Serial.write(bAns);    
+    
+  } else if (inByte == CMD_RD_CFG) {
+    bAns = dbg->getConfig();
+    if (handleError()) return;
+    Serial.write(ANS_OK);
+    Serial.write(bAns);
+    
+  } else if (inByte == CMD_WR_CFG) {
+    bAns = dbg->setConfig(c1);
+    if (handleError()) return;
+    Serial.write(ANS_OK);
+    Serial.write(bAns);
+
   } else {
     Serial.write(ANS_ERROR);
     Serial.write(0xFF);    
