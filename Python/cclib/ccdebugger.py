@@ -26,6 +26,7 @@ import serial
 import struct
 import math
 import time
+import sys
 
 # Command constants
 CMD_ENTER    = 0x01
@@ -40,6 +41,7 @@ CMD_EXEC_3   = 0x09
 CMD_BRUSTWR  = 0x0A
 CMD_RD_CFG   = 0x0B
 CMD_WR_CFG   = 0x0C
+CMD_CHPERASE = 0x0D
 CMD_PING     = 0xF0
 
 # Response constants
@@ -84,12 +86,12 @@ class CCDebugger:
 		# Get chip info & ID
 		self.chipID = self.getChipID()
 		self.chipInfo = self.getChipInfo()
+		self.debugStatus = self.getStatus()
 		self.debugConfig = self.readConfig()
-		self.debugStatus = 0
 
 		# Validate chip
 		if (self.chipID & 0xff00) != 0x8d00:
-			raise IOError("This class works ONLY with CC2540 TI chips!")
+			raise IOError("This class works ONLY with CC2540 TI chips (This is a 0x%04x)!" % self.chipID)
 
 	def sendFrame(self, cmd, c1=0,c2=0,c3=0 ):
 		"""
@@ -103,6 +105,7 @@ class CCDebugger:
 		# Check if we are waiting for response
 		status = ord(self.ser.read())
 		if status != ANS_OK:
+			print "> %02x" % status
 			status = ord(self.ser.read())
 			raise IOError("CCDebugger responded with an error (0x%02x)" % status)
 
@@ -180,6 +183,20 @@ class CCDebugger:
 		b1 = ord(self.ser.read())
 		b2 = ord(self.ser.read())
 		return (b1 <<  8) | b2
+
+	def getStatus(self):
+		"""
+		Return the debug status
+		"""
+		
+		# Execute command CMD_STATUS
+		if not self.sendFrame(CMD_STATUS):
+			return False
+		
+		# Read status
+		b1 = ord(self.ser.read())
+		self.debugStatus = b1
+		return b1
 
 	def getPC(self):
 		"""
@@ -265,7 +282,28 @@ class CCDebugger:
 		# Read debug config
 		self.debugStatus = ord(self.ser.read())
 		return True
-		
+	
+	def chipErase(self):
+		"""
+		Perform a chip erase
+		"""
+
+		# Re-enter debug mode
+		self.enter()
+
+		# Send chip erase command
+		if not self.sendFrame(CMD_CHPERASE):
+			return False
+
+		# Read status
+		self.debugStatus = ord(self.ser.read())
+
+		# Wait until CHIP_ERASE_BUSY goes down
+		s = self.getStatus()
+		while (( s & 0x80 ) != 0):
+			time.sleep(0.01)
+			s = self.getStatus()
+
 
 	###############################################
 	# Data reading
@@ -280,7 +318,7 @@ class CCDebugger:
 		a = self.instri( 0x90, offset )		# MOV DPTR,#data16
 
 		# Prepare ans array
-		ans = []
+		ans = bytearray()
 
 		# Read bytes
 		for i in range(0, size):
@@ -365,7 +403,7 @@ class CCDebugger:
 
 		# Build serial number string
 		serial = ""
-		for i in range(5,0,-1):
+		for i in range(5,-1,-1):
 			serial += "%02x" % bytes[i]
 
 		# Return serial
@@ -397,7 +435,7 @@ class CCDebugger:
 		# Get license key
 		return data
 
-	def getBLEInfoPage(self):
+	def backupBLEInfoPage(self):
 		"""
 		Return the Bluegiga information page (last)
 		"""
@@ -408,13 +446,24 @@ class CCDebugger:
 		# Get the information page
 		return data
 
+	def restoreBLEInfoPage(self, data):
+		"""
+		Write the Bluegiga information page (last)
+		"""
+
+		# Write the last 64 bytes to the last FLASH page
+		data = self.writeCODE( 0x1ffc0, data )
+
+		# Get the information page
+		return data
+
 	def getBLEInfo(self):
 		"""
 		Return the translated Bluegiga information page (last)
 		"""
 
 		# Get page data
-		page = self.getBLEInfoPage()
+		page = self.backupBLEInfoPage()
 
 		# Convert license to string
 		strLic = "".join( "%02x" % x for x in page[7:39] )
@@ -613,6 +662,16 @@ class CCDebugger:
 		a = self.readXDATA(0x6270, 1)
 		return (a[0] & 0x20 != 0)
 
+	def clearFlashStatus(self):
+		"""
+		Clear the flash status register
+		"""
+
+		# Read & mask-out status register bits
+		a = self.readXDATA(0x6270, 1)
+		a[0] &= 0x1F
+		return self.writeXDATA(0x6270, a)
+
 	def setFlashWrite(self):
 		"""
 		Set the WRITE bit in the flash control register
@@ -633,7 +692,7 @@ class CCDebugger:
 		a[0] |= 0x01
 		return self.writeXDATA(0x6270, a)
 
-	def writeCODE(self, offset, data, erase=False, blockSize=0x800, flashPageSize=0x800):
+	def writeCODE(self, offset, data, erase=False, blockSize=0x800, flashPageSize=0x800, showProgress=False):
 		"""
 		Fully automated function for writing the Flash memory.
 
@@ -641,25 +700,41 @@ class CCDebugger:
 		"""
 
 		# Prepare DMA-0 for DEBUG -> RAM (using DBG_BW trigger)
-		self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=blockSize, srcInc=0, dstInc=1, priority=1 )
+		self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=blockSize, srcInc=0, dstInc=1, priority=1, interrupt=True )
 		# Prepare DMA-1 for RAM -> FLASH (using the FLASH trigger)
 		self.configDMAChannel( 1, 0x0000, 0x6273, 0x12, tlen=blockSize, srcInc=1, dstInc=0, priority=2, interrupt=True )
+
+		# Reset flash status
+		self.clearFlashStatus()
 
 		# Split in 2048-byte chunks
 		iOfs = 0
 		while (iOfs < len(data)):
+
+			# Check if we should show progress
+			if showProgress:
+				print "%0.0f%%..." % (iOfs*100/len(data)),
+				sys.stdout.flush()
 
 			# Get next page
 			iLen = min( len(data) - iOfs, blockSize )
 
 			# Update DMA configuration if we have less than blockSize data 
 			if (iLen < blockSize):
-				self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=iLen, srcInc=0, dstInc=1, priority=1 )
+				self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=iLen, srcInc=0, dstInc=1, priority=1, interrupt=True )
 				self.configDMAChannel( 1, 0x0000, 0x6273, 0x12, tlen=iLen, srcInc=1, dstInc=0, priority=2, interrupt=True )
 
 			# Upload to RAM through DMA-0
+			self.clearDMAIRQ(0)
 			self.armDMAChannel(0)
 			self.brustWrite( data[iOfs:iLen] )
+
+			# Wait until DMA-0 raises interrupt
+			while not self.isDMAIRQ(0):
+				time.sleep(0.010)
+
+			# Clear DMA IRQ flag
+			self.clearDMAIRQ(0)
 
 			# Calculate the page where this data belong to
 			fAddr = offset + iOfs
@@ -682,11 +757,15 @@ class CCDebugger:
 					time.sleep(0.010)
 
 			# Upload to FLASH through DMA-1
+			self.clearDMAIRQ(1)
 			self.armDMAChannel(1)
 			self.setFlashWrite()
 
 			# Wait until DMA-1 raises interrupt
 			while not self.isDMAIRQ(1):
+				if self.isFlashAbort():
+					self.disarmDMAChannel(1)
+					raise IOError("Flash page 0x%02x is locked!" % fPage)
 				time.sleep(0.010)
 
 			# Clear DMA IRQ flag
@@ -695,6 +774,8 @@ class CCDebugger:
 			# Forward to next page
 			iOfs += iLen
 
+		if showProgress:
+			print "ok"
 
 def renderDebugConfig(cfg):
 	"""

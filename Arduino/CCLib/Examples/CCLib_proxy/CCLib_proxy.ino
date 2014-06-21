@@ -53,6 +53,7 @@ int CC_DC    = 17;
 #define   CMD_BRUSTWR  byte(0x0A)
 #define   CMD_RD_CFG   byte(0x0B)
 #define   CMD_WR_CFG   byte(0x0C)
+#define   CMD_CHPERASE byte(0x0D)
 
 #define   CMD_PING     byte(0xF0)
 #define   ANS_OK       byte(0x01)
@@ -144,10 +145,10 @@ void loop() {
     Serial.write( s1 & 0xFF );
     
   } else if (inByte == CMD_STATUS) {
-    c1 = dbg->getChipID();
+    bAns = dbg->getStatus();
     if (handleError()) return;
     Serial.write(ANS_OK);
-    Serial.write( c1 );
+    Serial.write( bAns );
 
   } else if (inByte == CMD_STEP) {
     bAns = dbg->step();
@@ -228,6 +229,12 @@ void loop() {
     Serial.write(ANS_OK);
     Serial.write(bAns);
 
+  } else if (inByte == CMD_CHPERASE) {
+    bAns = dbg->chipErase();
+    if (handleError()) return;
+    Serial.write(ANS_OK);
+    Serial.write(bAns);
+
   } else {
     Serial.write(ANS_ERROR);
     Serial.write(0xFF);    
@@ -238,4 +245,3 @@ void loop() {
   Serial.flush();
 
 }
-

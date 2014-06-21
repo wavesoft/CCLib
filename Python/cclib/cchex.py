@@ -22,6 +22,54 @@
 # SOFTWARE.
 #
 
+
+def hexdump(src, length=8):
+	"""
+	Utility function to perform hex-dumps
+	"""
+	result = []
+	digits = 4 if isinstance(src, unicode) else 2
+	for i in xrange(0, len(src), length):
+		s = src[i:i+length]
+		hexa = b' '.join(["%0*X" % (digits, x)  for x in s])
+		text = b''.join([chr(x) if 0x20 <= x < 0x7F else b'.'  for x in s])
+		result.append( b"%04X   %-*s   %s" % (i, length*(digits + 1), hexa, text) )
+	return b'\n'.join(result)
+
+class CCMemBlock:
+	"""
+	Memory blocks
+	"""
+
+	def __init__(self, addr=None):
+		"""
+		Initialize memory block
+		"""
+		self.addr = addr
+		self.size = 0
+		self.bytes = bytearray()
+
+	def isContinuous(self, addr):
+		"""
+		Check if it's continuous
+		"""
+		if self.addr == None:
+			self.addr = addr
+			self.size = 0
+			return True
+		else:
+			return ((self.addr + self.size) == addr)
+
+	def stack(self, bytes):
+		"""
+		Stack bytes to the memory block
+		"""
+		self.size += len(bytes)
+		self.bytes += bytes
+
+	def __repr__(self):
+		return "<MemBlock @ 0x%04x (%i Bytes)>" % (self.addr, self.size)
+
 class CCHEXFile:
 	"""
 	Utility class for reading/writing Intel HEX files
@@ -32,31 +80,97 @@ class CCHEXFile:
 		Initialize the HEX file parser/reader
 		"""
 		self.filename = filename
+		self.memBlocks = []
+
+	def load(self):
+		"""
+		Load file
+		"""
+		self._loadHex()
 
 	def _checksum(self, bytes):
 		"""
 		Calculate the checksum byte of the line
 		"""
+		# Sum
+		val = sum(bytes) & 0xFF
+		# Two's coplement
+		val = 0xFF - val + 1
+		# Return
+		return val & 0xFF
 
 	def _loadHex(self):
 		"""
 		Load source file in HEX format
 		"""
 
+		# Prepare memory block
+		mb = CCMemBlock()
+		self.memBlocks = []
+
 		# Open source file
 		i = 0
-		with open(self.filename, "w") as f:
+		with open(self.filename, "r") as f:
+
+			# Base address
+			baseAddress = 0x00
 
 			# Scan lines
 			for line in f.readlines():
 				i += 1
 
+				# Trim ending newline
+				line = line[0:-1]
+
 				# Validate format
 				if not line[0:1] == ":":
-					raise IOError("Source file is not in HEX format!")
+					raise IOError("Line %i: Source file is not in HEX format!" % i)
 
 				# Convert input line to bytes
-				lineBytes = []
-				for j in range(0,len(line)-1,2):
-					lineBytes.append( int(line[j+1:2], 16) )
+				bytes = [ int(line[x:x+2],16) for x in range(1,len(line),2) ]
+				csum = bytes.pop()
 
+				# Validate checksum
+				c1 = self._checksum(bytes)
+
+				if self._checksum(bytes) != csum:
+					raise IOError("Line %i: Checksum error" % i)
+
+				# Get sub-fields
+				bCount = bytes.pop(0)
+				aHi = bytes.pop(0)
+				aLo = bytes.pop(0)
+				bAddr = (aHi << 8) | aLo
+				bType = bytes.pop(0)
+
+				# Check for end-of-file
+				if bType == 0x01:
+					break
+
+				# Check for address shift records
+				elif bType == 0x02:
+					baseAddress = ((bytes[0] << 8) | bytes[1]) << 4
+				elif bType == 0x04:
+					baseAddress = ((bytes[0] << 8) | bytes[1]) << 16
+
+				# Check for data
+				elif bType == 0x00:
+
+					# Apply base address shift
+					bAddr |= baseAddress
+
+					# Check if we are continuing
+					if mb.isContinuous(bAddr):
+						mb.stack(bytearray(bytes))
+					else:
+						self.memBlocks.append(mb)
+						mb = CCMemBlock(bAddr)
+
+					#print "0x%06x : " % bAddr, "".join( "%02x " % x for x in bytes )
+
+				# Everything else raise error
+				else:
+					raise IOError("Line %i: Unknown record type %02x" % (i, bType))
+
+			# Stack rest
+			self.memBlocks.append(mb)

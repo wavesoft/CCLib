@@ -108,6 +108,11 @@ public:
    */
   byte setConfig( byte config );
 
+  /**
+   * Massive erasure on the chip
+   */
+  byte chipErase();
+
   ////////////////////////////
   // Low-level interaction
   ////////////////////////////

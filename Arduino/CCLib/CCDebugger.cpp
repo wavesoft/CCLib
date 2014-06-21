@@ -211,7 +211,6 @@ byte CCDebugger::enter()
 
 };
 
-
 /**
  * Write a byte to the debugger
  */
@@ -247,11 +246,11 @@ byte CCDebugger::write( byte data )
 
     // Shift & Delay
     data <<= 1;
-    cc_delay(4);
+    cc_delay(2);
 
     // Place clock down
     digitalWrite(pinDC, LOW);
-    cc_delay(4);
+    cc_delay(2);
 
   }
 
@@ -283,7 +282,7 @@ byte CCDebugger::switchRead()
   setDDDirection(INPUT);
 
   // Wait at least 83 ns before checking state t(dir_change)
-  cc_delay(4);
+  cc_delay(2);
 
   // Wait for DD to go LOW (Chip is READY)
   while (digitalRead(pinDD_I) == HIGH) {
@@ -291,9 +290,9 @@ byte CCDebugger::switchRead()
     // Do 8 clock cycles
     for (cnt = 8; cnt; cnt--) {
       digitalWrite(pinDC, HIGH);
-      cc_delay(4);
+      cc_delay(2);
       digitalWrite(pinDC, LOW);
-      cc_delay(4);
+      cc_delay(2);
     }
 
     // Let next function know that we did wait
@@ -301,7 +300,7 @@ byte CCDebugger::switchRead()
   }
 
   // Wait t(sample_wait) 
-  if (didWait) cc_delay(4);
+  if (didWait) cc_delay(2);
 
   // =============
   if (pinReadLED) digitalWrite(pinReadLED, LOW);
@@ -338,7 +337,7 @@ byte CCDebugger::read()
   // Send 8 clock pulses if we are HIGH
   for (cnt = 8; cnt; cnt--) {
     digitalWrite(pinDC, HIGH);
-    cc_delay(4);
+    cc_delay(2);
 
     // Shift and read
     data <<= 1;
@@ -346,7 +345,7 @@ byte CCDebugger::read()
       data |= 0x01;
 
     digitalWrite(pinDC, LOW);
-    cc_delay(4);
+    cc_delay(2);
   }
 
   // =============
@@ -659,3 +658,27 @@ byte CCDebugger::step() {
 
   return bAns;
 }
+
+/**
+ * Mass-erase all chip configuration & Lock Bits
+ */
+byte CCDebugger::chipErase()
+{
+  if (!active) {
+    errorFlag = 1;
+    return 0;
+  };
+  if (!inDebugMode) {
+    errorFlag = 2;
+    return 0;
+  }
+
+  byte bAns;
+
+  write( 0x10 ); // CHIP_ERASE
+  switchRead();
+  bAns = read(); // Debug status
+  switchWrite(); 
+
+  return bAns;
+};

@@ -13,7 +13,7 @@ try:
 	dbg = CCDebugger("/dev/tty.usbmodem12341")
 except Exception as e:
 	print "ERROR: %s" % str(e)
-	sys.exit(0)
+	sys.exit(1)
 
 # Get info
 print "\nChip information:"

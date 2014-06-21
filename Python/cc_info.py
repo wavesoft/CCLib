@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from cclib import CCDebugger
+from cclib import CCDebugger, hexdump
 import sys
 
 # Open debugger
@@ -8,7 +8,7 @@ try:
 	dbg = CCDebugger("/dev/tty.usbmodem12341")
 except Exception as e:
 	print "ERROR: %s" % str(e)
-	sys.exit(0)
+	sys.exit(1)
 
 # Get info
 print "\nChip information:"
@@ -30,6 +30,10 @@ print "\nFirmware information:"
 print "      License : %s" % binfo['license']
 print "   BT Address : %s" % binfo['btaddr']
 print " Hardware Ver : %02x" % binfo['hwver']
+
+# Get device information from the read-only section
+#print "\nRead-only flash page:"
+#print hexdump( dbg.getInfoPage(), 16 )
 
 # Done
 print ""
