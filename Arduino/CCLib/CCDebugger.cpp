@@ -121,7 +121,7 @@ void CCDebugger::setActive( boolean on )
 
     // Before deactivating, exit debug mode
     if (inDebugMode)
-      self->exit();
+      this->exit();
 
     // Put everything in inactive mode
     pinMode(pinDC,        INPUT);

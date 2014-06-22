@@ -43,7 +43,8 @@ def hexdump(src, length=8):
 
 class CCMemBlock:
 	"""
-	Memory blocks
+	In-memory memory block representation.
+	This class is used for managing non-continuous memory sections.
 	"""
 
 	def __init__(self, addr=None):
