@@ -138,7 +138,7 @@ void loop() {
     Serial.write( s1 & 0xFF );
     
   } else if (inByte == CMD_PC) {
-    s1 = dbg->getChipID();
+    s1 = dbg->getPC();
     if (handleError()) return;
     Serial.write(ANS_OK);
     Serial.write( (s1 >> 8) & 0xFF );
