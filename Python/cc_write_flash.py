@@ -42,12 +42,15 @@ binfo = dbg.getBLEInfo()
 serial = dbg.getSerial()
 
 # Check if we have missing license
-autogenMessage=""
+btaMessage=""
+hwvMessage=""
+licMessage=""
 hasLicense = False
 for x in binfo['license']:
 	if x != "f":
 		hasLicense = True
 		break
+
 if not hasLicense or (len(sys.argv)>=3):
 	if len(sys.argv) < 3:
 		print "ERROR: Your device has no license key"
@@ -61,30 +64,35 @@ if not hasLicense or (len(sys.argv)>=3):
 			print "ERROR: Invalid license key specified!"
 			sys.exit(5)
 		else:
+			licMessage = "(From command-line)"
 			binfo['license'] = licKey
 
 		if len(sys.argv) < 4:
-			binfo['btaddr'] = "".join([ "%s:" % serial[x:x+2] for x in range(0,len(serial),2) ])[0:-1]
-			autogenMessage = " (Generated using IEEE address)"
+			if not hasLicense:
+				binfo['btaddr'] = "".join([ "%s:" % serial[x:x+2] for x in range(0,len(serial),2) ])[0:-1]
+				btaMessage = " (Generated using IEEE address)"
 		else:
 			if len(sys.argv[3]) != 17:
 				print "ERROR: Invalid BT Address specified!"
 				printHelp()
 				sys.exit(5)
+			btaMessage = "(From command-line)"
 			binfo['btaddr'] = sys.argv[3]
 
 		# Reset Hardware Version
 		if len(sys.argv) < 5:
-			binfo['hwver'] = 0x01
+			if not hasLicense:
+				binfo['hwver'] = 0x01
 		else:
+			hwvMessage = "(From command-line)"
 			binfo['hwver'] = int(sys.argv[4])
 
 # Print collected license information
 print "\nLicense information:"
 print " IEEE Address : %s" % serial
-print "   BT Address : %s" % binfo['btaddr'], autogenMessage
-print "      License : %s" % binfo['license']
-print " H/W Version  : %02x" % binfo['hwver']
+print " H/W Version  : %02x" % binfo['hwver'], hwvMessage
+print "   BT Address : %s" % binfo['btaddr'], btaMessage
+print "      License : %s" % binfo['license'], licMessage
 print ""
 
 # Parse the HEX file
@@ -138,7 +146,8 @@ if pssize > 0:
 # Send chip erase
 print " - Chip erase..."
 try:
-	dbg.chipErase()
+#	dbg.chipErase()
+	pass
 except Exception as e:
  	print "ERROR: %s" % str(e)
  	sys.exit(3)

@@ -22,6 +22,17 @@
 # SOFTWARE.
 #
 
+def toHex(data):
+	"""
+	Utility function to convert a buffer to hexadecimal
+	"""
+	return "".join( "%02x" % x for x in data )
+
+def fromHex(data,offset=0,step=2):
+	"""
+	Utility function to convert a hexadecimal string to buffer
+	"""
+	return bytearray([ int(data[x:x+2],16) for x in range(offset,len(data),step) ])
 
 def hexdump(src, length=8):
 	"""
@@ -132,6 +143,32 @@ class CCHEXFile:
 		# Return
 		return val & 0xFF
 
+	def _saveHex(self):
+		"""
+		Save destination file in HEX format
+		"""
+
+		# Open target file
+		with open(self.filename, "w") as f:
+
+			def _write(bytes):
+
+				# Prepend size of data field
+				dlen = len(bytes) - 3
+				bytes = [dlen] + bytes
+
+				# Append checksum
+				bytes += [self._checksum(bytes)]
+
+				# Write to file
+				f.write(":%s\n" % toHex(bytes))
+
+			# Handle memory blocks
+			for mb in self.memBlocks:
+
+				# Define offset address
+				b = [ 0x00, 0x00, 0x04, (mb.addr >> 8) & 0xFF, mb.addr & 0xFF ]
+
 	def _loadHex(self):
 		"""
 		Load source file in HEX format
@@ -165,7 +202,6 @@ class CCHEXFile:
 
 				# Validate checksum
 				c1 = self._checksum(bytes)
-
 				if self._checksum(bytes) != csum:
 					raise IOError("Line %i: Checksum error" % i)
 

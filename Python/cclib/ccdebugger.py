@@ -22,6 +22,7 @@
 # SOFTWARE.
 #
 
+from cclib.cchex import toHex, fromHex
 import serial
 import struct
 import math
@@ -47,18 +48,7 @@ CMD_PING     = 0xF0
 # Response constants
 ANS_OK       = 0x01
 ANS_ERROR    = 0x02
-
-def toHex(data):
-	"""
-	Utility function to convert a buffer to hexadecimal
-	"""
-	return "".join( "%02x" % x for x in data )
-
-def fromHEX(data):
-	"""
-	Utility function to convert a hexadecimal string to buffer
-	"""
-	return bytearray([ int(data[x:x+2],16) for x in range(0,len(data),2) ])
+ANS_READY    = 0x03
 
 class CCDebugger:
 	"""
@@ -111,7 +101,31 @@ class CCDebugger:
 		if (self.chipID & 0xff00) != 0x8d00:
 			raise IOError("This class works ONLY with CC2540 TI chips (This is a 0x%04x)!" % self.chipID)
 
-	def sendFrame(self, cmd, c1=0,c2=0,c3=0 ):
+	###############################################
+	# Low-level functions
+	###############################################
+
+	def readFrame(self, raiseException=True):
+		"""
+		Read and translate the 3-byte response frame from arduino
+		"""
+
+		# Read response frame
+		status = ord(self.ser.read())
+		bH = ord(self.ser.read())
+		bL = ord(self.ser.read())
+
+		# Handle error responses
+		if status == ANS_ERROR:
+			if raiseException:
+				raise IOError("CCDebugger responded with an error (0x%02x)" % bL)
+			else:
+				return -bL
+
+		# Otherwise we are good
+		return (bH << 8) | bL
+
+	def sendFrame(self, cmd, c1=0,c2=0,c3=0,raiseException=True ):
 		"""
 		Send the specified frame to the output queue
 		"""
@@ -120,25 +134,21 @@ class CCDebugger:
 		self.ser.write( chr(cmd)+chr(c1)+chr(c2)+chr(c3) )
 		self.ser.flush()
 
-		# Check if we are waiting for response
-		status = ord(self.ser.read())
-		if status != ANS_OK:
-			print "> %02x" % status
-			status = ord(self.ser.read())
-			raise IOError("CCDebugger responded with an error (0x%02x)" % status)
-
-		# Otherwise we are good
-		return True
+		# Read frame
+		return self.readFrame(raiseException)
 
 	###############################################
-	# Low-level functions
+	# Debug-level functions
 	###############################################
 
 	def ping(self):
 		"""
 		Send a PING frame
 		"""
-		return self.sendFrame(CMD_PING)
+
+		# This will raise an exception on error
+		self.sendFrame(CMD_PING)
+		return True
 
 
 	def enter(self):
@@ -152,8 +162,6 @@ class CCDebugger:
 		Exit from debug mode by resuming the CPU
 		"""
 		status = self.sendFrame(CMD_EXIT)
-		if not status:
-			return False
 		
 		# Update debug status
 		self.debugStatus = status
@@ -163,98 +171,60 @@ class CCDebugger:
 		"""
 		Read debug configuration
 		"""
-		if not self.sendFrame(CMD_RD_CFG):
-			return 0
-
-		# Read debug config
-		b1 = ord(self.ser.read())
-		return b1
+		return self.sendFrame(CMD_RD_CFG)
 
 	def writeConfig(self, config):
 		"""
 		Read debug configuration
 		"""
-		if not self.sendFrame(CMD_WR_CFG, config):
-			return 0
+		ans = self.sendFrame(CMD_WR_CFG, config)
 
-		# Read debug config
-		b1 = ord(self.ser.read())
+		# Update local variables
 		self.debugConfig = config
-		self.debugStatus = b1
-		return b1
+		self.debugStatus = ans
+		return ans
 
 	def step(self):
 		"""
 		Step a single instruction
 		"""
-		if not self.sendFrame(CMD_STEP):
-			return 0
-
-		# Read accumulator
-		b1 = ord(self.ser.read())
-		return b1
+		return self.sendFrame(CMD_STEP)
 
 	def getChipID(self):
 		"""
 		Return the ChipID as read from the chip
 		"""
-		
-		# Execute command CMD_CHIP_ID
-		if not self.sendFrame(CMD_CHIP_ID):
-			return False
-		
-		# Read Chip ID
-		b1 = ord(self.ser.read())
-		b2 = ord(self.ser.read())
-		return (b1 <<  8) | b2
+		return self.sendFrame(CMD_CHIP_ID)
 
 	def getStatus(self):
 		"""
 		Return the debug status
 		"""
-		
-		# Execute command CMD_STATUS
-		if not self.sendFrame(CMD_STATUS):
-			return False
-		
-		# Read status
-		b1 = ord(self.ser.read())
-		self.debugStatus = b1
-		return b1
+		ans = self.sendFrame(CMD_STATUS)
+
+		# Update local variables
+		self.debugStatus = ans
+		return ans
 
 	def getPC(self):
 		"""
-		Return the PC position as read from the chip
+		Return the program counter position
 		"""
-		
-		# Execute command CMD_CHIP_ID
-		if not self.sendFrame(CMD_PC):
-			return False
-		
-		# Read Program Counter
-		b1 = ord(self.ser.read())
-		b2 = ord(self.ser.read())
-		return (b1 <<  8) | b2
+		return self.sendFrame(CMD_PC)
 
 	def instr(self, c1, c2=None, c3=None):
 		"""
 		Execute a debug instruction
 		"""
 
-		# Check how many bytes are we passing
+		# Call the appropriate instruction according
+		# to the number of bytes 
 		if (c2 == None):
-			if not self.sendFrame(CMD_EXEC_1, c1):
-				return False
+			return self.sendFrame(CMD_EXEC_1, c1)
 		elif (c3 == None):
-			if not self.sendFrame(CMD_EXEC_2, c1, c2):
-				return False
+			return self.sendFrame(CMD_EXEC_2, c1, c2)
 		else:
-			if not self.sendFrame(CMD_EXEC_3, c1, c2, c3):
-				return False
-
-		# Read accumulator
-		b1 = ord(self.ser.read())
-		return b1
+			return self.sendFrame(CMD_EXEC_3, c1, c2, c3)
 
 	def instri(self, c1, i1):
 		"""
@@ -266,12 +236,7 @@ class CCDebugger:
 		cLow = (i1 & 0xFF)
 
 		# Send instruction
-		if not self.sendFrame(CMD_EXEC_3, c1, cHigh, cLow):
-			return False
-
-		# Read accumulator
-		b1 = ord(self.ser.read())
-		return b1
+		return self.sendFrame(CMD_EXEC_3, c1, cHigh, cLow)
 
 	def brustWrite(self, data):
 		"""
@@ -289,23 +254,18 @@ class CCDebugger:
 		cLow = (length & 0xFF)
 
 		# Prepare for BRUST frame transmission
-		if not self.sendFrame(CMD_BRUSTWR, cHigh, cLow):
-			return False
+		ans = self.sendFrame(CMD_BRUSTWR, cHigh, cLow)
+		if ans != ANS_READY:
+			raise IOError("Unable to prepare for brust-write! (Unknown response 0x%02x)" % ans)
 
 		# Start sending data
 		for b in data:
 			self.ser.write(chr(b & 0xFF))
 		self.ser.flush()
 
-		# Handle response
-		status = ord(self.ser.read())
-		if status != ANS_OK:
-			status = ord(self.ser.read())
-			raise IOError("CCDebugger responded with an error (0x%02x)" % status)
-
-		# Read debug config
-		self.debugStatus = ord(self.ser.read())
-		return True
+		# Handle response & update debug status
+		self.debugStatus = self.readFrame()
+		return self.debugStatus
 	
 	def chipErase(self):
 		"""
@@ -315,12 +275,8 @@ class CCDebugger:
 		# Re-enter debug mode
 		self.enter()
 
-		# Send chip erase command
-		if not self.sendFrame(CMD_CHPERASE):
-			return False
-
-		# Read status
-		self.debugStatus = ord(self.ser.read())
+		# Send chip erase command & update debug status
+		self.debugStatus = self.sendFrame(CMD_CHPERASE)
 
 		# Wait until CHIP_ERASE_BUSY goes down
 		s = self.getStatus()
@@ -328,6 +284,9 @@ class CCDebugger:
 			time.sleep(0.01)
 			s = self.getStatus()
 
+		# We are good
+		self.debugStatus = s
+		return self.debugStatus
 
 	###############################################
 	# Data reading
@@ -506,7 +465,7 @@ class CCDebugger:
 
 		# Check if we have to convert the license bytes
 		if fromHEX:
-			license = [ int(license[x:x+2],16) for x in range(0,len(license),2) ]
+			license = fromHex(license)
 
 		# Validate lincense size
 		if len(license) != 32:
@@ -526,7 +485,7 @@ class CCDebugger:
 
 		# Check if we have to convert the bluetooth address bytes
 		if fromHEX:
-			btAddress = [ int(btAddress[x:x+2],16) for x in range(0,len(btAddress),3) ]
+			btAddress = fromHex(btAddress,step=3)
 
 		# Validate lincense size
 		if len(btAddress) != 6:

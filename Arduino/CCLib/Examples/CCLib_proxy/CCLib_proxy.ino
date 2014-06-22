@@ -54,14 +54,16 @@ int CC_DC    = 17;
 #define   CMD_RD_CFG   byte(0x0B)
 #define   CMD_WR_CFG   byte(0x0C)
 #define   CMD_CHPERASE byte(0x0D)
-
 #define   CMD_PING     byte(0xF0)
+
+// Response constants
 #define   ANS_OK       byte(0x01)
 #define   ANS_ERROR    byte(0x02)
+#define   ANS_READY    byte(0x03)
 
 // Initialize properties
 CCDebugger * dbg;
-byte inByte, bAns;
+byte inByte, bAns, bIdle;
 byte c1, c2, c3;
 unsigned short s1;
 int iLen, iRead;
@@ -87,14 +89,22 @@ void setup() {
 }
 
 /**
+ * Send a response frame
+ */
+void sendFrame( const byte ans, const byte b0=0, const byte b1=0 ) {
+    Serial.write(ans);
+    Serial.write(b1); // Send High-order first
+    Serial.write(b0); // Send Low-order second
+    Serial.flush();
+}
+
+/**
  * Check if debugger is in error state and if yes,
  * reply with an error code.
  */
 boolean handleError( ) {
   if (dbg->error()) {
-    Serial.write(ANS_ERROR);
-    Serial.write(dbg->error());
-    Serial.flush();
+    sendFrame(ANS_ERROR, dbg->error());
     return true;
   }
   return false;
@@ -117,64 +127,60 @@ void loop() {
   
   // Handle commands
   if (inByte == CMD_PING) {
-    Serial.write(ANS_OK);
+    sendFrame( ANS_OK );
     
   } else if (inByte == CMD_ENTER) {
     bAns = dbg->enter();
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.flush();
+    sendFrame( ANS_OK );
 
   } else if (inByte == CMD_EXIT) {
     bAns = dbg->exit();
     if (handleError()) return;
-    Serial.write(ANS_OK);
+    sendFrame( ANS_OK );
     
   } else if (inByte == CMD_CHIP_ID) {
     s1 = dbg->getChipID();
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write( (s1 >> 8) & 0xFF );
-    Serial.write( s1 & 0xFF );
+    sendFrame( ANS_OK,
+               s1 & 0xFF,       // LOW first
+               (s1 >> 8) & 0xFF // HIGH second
+              );
     
   } else if (inByte == CMD_PC) {
     s1 = dbg->getPC();
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write( (s1 >> 8) & 0xFF );
-    Serial.write( s1 & 0xFF );
+    sendFrame( ANS_OK,
+               s1 & 0xFF,       // LOW first
+               (s1 >> 8) & 0xFF // HIGH second
+              );
     
   } else if (inByte == CMD_STATUS) {
     bAns = dbg->getStatus();
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write( bAns );
+    sendFrame( ANS_OK, bAns );
 
   } else if (inByte == CMD_STEP) {
     bAns = dbg->step();
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write(bAns);
+    sendFrame( ANS_OK, bAns );
 
   } else if (inByte == CMD_EXEC_1) {
     
     bAns = dbg->exec( c1 );
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write(bAns);
+    sendFrame( ANS_OK, bAns );
 
   } else if (inByte == CMD_EXEC_2) {
     
     bAns = dbg->exec( c1, c2 );
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write(bAns);
+    sendFrame( ANS_OK, bAns );
 
   } else if (inByte == CMD_EXEC_3) {    
     bAns = dbg->exec( c1, c2, c3 );
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write(bAns);
+    sendFrame( ANS_OK, bAns );
   
   } else if (inByte == CMD_BRUSTWR) {
     
@@ -183,27 +189,57 @@ void loop() {
     
     // Validate length
     if (iLen > 2048) {
-      Serial.write(ANS_ERROR);
-      Serial.write(3);
-      Serial.flush();
+      sendFrame( ANS_ERROR, 3 );
       return;
     }
     
     // Confirm transfer
-    Serial.write(ANS_OK);
-    Serial.flush();
+    sendFrame( ANS_READY );
     
     // Prepare for brust-write
     dbg->write( 0x80 | (c1 & 0x07) ); // High-order bits
     dbg->write( c2 ); // Low-order bits
     
     // Start serial loop
-    iRead = 0;
-    while (iRead < iLen) {
+    iRead = iLen;
+    bIdle = 0;
+    while (iRead > 0) {
+
+      // When we have data, forward them to the debugger
       if (Serial.available() >= 1) {
         inByte = Serial.read();
         dbg->write(inByte);
-        iRead++;
+        bIdle = 0;
+        iRead--;
+      }
+
+      // If we don't have any data, check for idle timeout
+      else {
+
+        // If we are idle for more than 1s, drop command
+        if (++bIdle > 200) {
+          
+          // The PC was disconnected/stale for too long
+          // complete the command by sending 0's
+          while (iRead > 0) {
+            dbg->write(0);
+            iRead--;
+          }
+
+          // Read debug status to complete the command sequence
+          dbg->switchRead();
+          bAns = dbg->read();
+          dbg->switchWrite();
+
+          // Send error
+          sendFrame( ANS_ERROR, 4 );
+          return;
+
+        }
+
+        // Wait for some time 
+        delay(50);
+
       }
     }
     
@@ -214,34 +250,26 @@ void loop() {
 
     // Handle response    
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write(bAns);    
+    sendFrame( ANS_OK, bAns );
     
   } else if (inByte == CMD_RD_CFG) {
     bAns = dbg->getConfig();
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write(bAns);
+    sendFrame( ANS_OK, bAns );
     
   } else if (inByte == CMD_WR_CFG) {
     bAns = dbg->setConfig(c1);
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write(bAns);
+    sendFrame( ANS_OK, bAns );
 
   } else if (inByte == CMD_CHPERASE) {
     bAns = dbg->chipErase();
     if (handleError()) return;
-    Serial.write(ANS_OK);
-    Serial.write(bAns);
+    sendFrame( ANS_OK, bAns );
 
   } else {
-    Serial.write(ANS_ERROR);
-    Serial.write(0xFF);    
+    sendFrame( ANS_ERROR, 0xFF );
     
   }
   
-  // Wait for data to be written
-  Serial.flush();
-
 }
