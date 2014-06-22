@@ -119,6 +119,10 @@ void CCDebugger::setActive( boolean on )
 
   } else {
 
+    // Before deactivating, exit debug mode
+    if (inDebugMode)
+      self->exit();
+
     // Put everything in inactive mode
     pinMode(pinDC,        INPUT);
     pinMode(pinDD_I,      INPUT);
@@ -398,6 +402,8 @@ byte CCDebugger::exit()
   switchRead();
   bAns = read(); // debug status
   switchWrite(); 
+
+  inDebugMode = 0;
 
   return 0;
 }
