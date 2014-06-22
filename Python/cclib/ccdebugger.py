@@ -824,7 +824,6 @@ class CCDebugger:
 		self.clearDMAIRQ(1)
 		self.disarmDMAChannel(0)
 		self.disarmDMAChannel(1)
-		uploadRetries = 0
 		flashRetries = 0
 
 		# Split in 2048-byte chunks
@@ -885,19 +884,6 @@ class CCDebugger:
 				# Wait until flash is not busy any more
 				while self.isFlashBusy():
 					time.sleep(0.010)
-
-			# Verify debug upload integrity
-			if verify:
-				verifyBytes = self.readXDATA(0x0000, iLen)
-				for i in range(0, iLen):
-					if verifyBytes[i] != data[iOfs+i]:
-						if uploadRetries < 3:
-							print "[Upload error @0x%04x, will retry]" % (fAddr+i),
-							uploadRetries += 1
-							continue
-						else:
-							raise IOError("Upload verification error on offset 0x%04x" % (fAddr+i))
-			uploadRetries = 0
 
 			# Upload to FLASH through DMA-1
 			self.armDMAChannel(1)
