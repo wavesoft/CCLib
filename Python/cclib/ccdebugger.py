@@ -862,6 +862,8 @@ class CCDebugger:
 		self.clearDMAIRQ(1)
 		self.disarmDMAChannel(0)
 		self.disarmDMAChannel(1)
+		uploadRetries = 0
+		flashRetries = 0
 
 		# Split in 2048-byte chunks
 		iOfs = 0
@@ -927,7 +929,13 @@ class CCDebugger:
 				verifyBytes = self.readXDATA(0x0000, iLen)
 				for i in range(0, iLen):
 					if verifyBytes[i] != data[iOfs+i]:
-						raise IOError("PRE-Verification error on offset 0x%04x" % (fAddr+i))
+						if uploadRetries < 3:
+							print "[Upload error @0x%04x, will retry]" % (fAddr+i),
+							uploadRetries += 1
+							continue
+						else:
+							raise IOError("Upload verification error on offset 0x%04x" % (fAddr+i))
+			uploadRetries = 0
 
 			# Upload to FLASH through DMA-1
 			self.armDMAChannel(1)
@@ -949,7 +957,13 @@ class CCDebugger:
 				verifyBytes = self.readCODE(fAddr, iLen)
 				for i in range(0, iLen):
 					if verifyBytes[i] != data[iOfs+i]:
-						raise IOError("Verification error on offset 0x%04x" % (fAddr+i))
+						if flashRetries < 3:
+							print "[Flash Error @0x%04x, will retry]" % (fAddr+i),
+							flashRetries += 1
+							continue
+						else:
+							raise IOError("Flash verification error on offset 0x%04x" % (fAddr+i))
+			flashRetries = 0
 
 			# Forward to next page
 			iOfs += iLen
