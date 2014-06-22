@@ -38,6 +38,28 @@ Usage
 4. Connect it to your CCxxxx chip
 5. Use the python scripts from the Python/ directory to read/flash your chip.
 
+Protocol
+--------
+
+The protocol used between your computer and your Arduino is quite simple and not really fault-proof. This was intended as a pure proxy mechanism in order to experiment with the CC Debugging protocol from the computer. Therefore, if you interrupt any operation in the middle, you will most probably have to unplug and re-plug your Teensy/Arduino. That said, here is the protocol:
+
+Since most of the debug commands are at max 4-bytes long, we are sending from the computer a constant-sized frame of 4-bytes:
+
+    +-----------+-----------+-----------+-----------+
+    |  Command  |   Data 0  |   Data 1  |   Data 2  |
+    +-----------+-----------+-----------+-----------+
+
+The only exception is the brust-write command (CMD_BRUSTWR), where up to 2048 bytes might follow the 4-byte frame.
+
+The Teensy/Arduino will always reply with the following 3-byte long frame:
+
+    +-----------+-----------+-----------+
+    |   Status  |    ResH   |  Err/ResL |
+    +-----------+-----------+-----------+
+
+If the status code is `ANS_OK`, the `ResH:ResL` word contains the resulting word (or byte) of the command. If it's `ANS_ERR`, the `ResL` byte contains the error code.
+
+
 Disclaimer
 ----------
 
@@ -46,12 +68,18 @@ I have successfully managed to flash various BLE112 modules using the scripts pr
 License
 -------
 
-Copyright (C) 2014 Ioannis Charalampidis
+Copyright (c) 2014 Ioannis Charalampidis
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+ 
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 

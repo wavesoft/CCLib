@@ -26,7 +26,7 @@
  <CC_DC> --[ 100k ]-- {RST} --[ 200k ]-- <GND>
 
  ///////////////////////////////////////////////////////////////////////////////
- (C) Copyright 2014, Ioannis Charalampidis - Licensed under MIT License.
+ (C) Copyright 2014, Ioannis Charalampidis - Licensed under GNU/GPLv3 License.
  ///////////////////////////////////////////////////////////////////////////////
  */
  
