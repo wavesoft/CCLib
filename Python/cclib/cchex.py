@@ -97,18 +97,62 @@ class CCHEXFile:
 	Utility class for reading/writing Intel HEX files
 	"""
 
-	def __init__(self, filename):
+	def __init__(self, filename=""):
 		"""
 		Initialize the HEX file parser/reader
 		"""
 		self.filename = filename
 		self.memBlocks = []
 
-	def load(self):
+	def load(self,filename=None, ftype=None):
 		"""
 		Load file
 		"""
-		self._loadHex()
+		# Check for overriden filename
+		if filename != None:
+			self.filename = filename
+
+		# Guess format if not specified
+		if ftype == None:
+			if self.filename[-4:].lower() == ".hex":
+				ftype = "hex"
+			elif self.filename[-4:].lower() == ".bin":
+				ftype = "bin"
+			else:
+				raise IOError("Could not detect file format. Please specify!")
+
+		# Load according to the format
+		if ftype == "hex":
+			self._loadHex()
+		elif ftype == "bin":
+			self._loadBin()
+		else:
+			raise IOError("Unknown format '%s' specified!" % ftype)
+
+	def save(self,filename=None, ftype=None):
+		"""
+		Load file
+		"""
+		# Check for overriden filename
+		if filename != None:
+			self.filename = filename
+
+		# Guess format if not specified
+		if ftype == None:
+			if self.filename[-4:].lower() == ".hex":
+				ftype = "hex"
+			elif self.filename[-4:].lower() == ".bin":
+				ftype = "bin"
+			else:
+				raise IOError("Could not detect file format. Please specify!")
+
+		# Load according to the format
+		if ftype == "hex":
+			self._saveHex()
+		elif ftype == "bin":
+			self._saveBin()
+		else:
+			raise IOError("Unknown format '%s' specified!" % ftype)
 
 	def set(self, addr, bytes):
 		"""
@@ -126,6 +170,18 @@ class CCHEXFile:
 		targetBlock = CCMemBlock(addr)
 		targetBlock.stack(bytes)
 
+	def stack(self, bytes):
+		"""
+		Append bytes on the last memory block
+		"""
+
+		# Check if we have no memory blocks
+		if len(self.memBlocks) == 0:
+			self.memBlocks.append(CCMemBlock(0x0000))
+
+		# Append to last block
+		self.memBlocks[-1].stack(bytes)
+
 	def _checksum(self, bytes):
 		"""
 		Calculate the checksum byte of the line
@@ -137,35 +193,107 @@ class CCHEXFile:
 		# Return
 		return val & 0xFF
 
+	def _saveBin(self):
+		"""
+		Save memory blocks in a binary file
+		"""
+
+		# Open target file
+		with open(self.filename, "wb") as f:
+
+			# Write memory blocks (assuming they are ordered)
+			for mb in self.memBlocks:
+
+				# Seek to the specified addres
+				f.seek(mb.addr, 0)
+
+				# Dump buffer in file
+				f.write(mb.bytes)
+
+	def _loadBin(self):
+		"""
+		Load a single memory block from a binary file on disk
+		"""
+
+		# Prepare memory block
+		mb = CCMemBlock(0x0000)
+		self.memBlocks = []
+
+		# Open target file
+		with open(self.filename, "rb") as f:
+
+			# Read entire file
+			mb.bytes = f.read()
+			mb.size = len(mb.bytes)
+
+		# Store memory block
+		self.memBlocks = [mb]
+
 	def _saveHex(self):
 		"""
-		Save destination file in HEX format
+		Save memory blocks in an IntelHEX format
 		"""
 
 		# Open target file
 		with open(self.filename, "w") as f:
 
-			def _write(bytes):
+			def _write(addr, cmd, bytes):
 
-				# Prepend size of data field
-				dlen = len(bytes) - 3
-				bytes = [dlen] + bytes
+				# Build field bytes
+				dlen = len(bytes)
+				header = [ 
+						dlen,				#  0: Data field lenght
+						(addr >> 8) & 0xFF, #  1: Address High
+						addr & 0xFF,		#  2: Address Low
+						cmd 				#  3: Field type
+						]
+				
+				# Extend bytes
+				bytes = bytearray(header) + bytearray(bytes)
 
-				# Append checksum
-				bytes += [self._checksum(bytes)]
+				# Calculate checksum
+				csum = self._checksum(bytes)
 
 				# Write to file
-				f.write(":%s\n" % toHex(bytes))
+				f.write(":%s%02x\n" % (toHex(bytes), csum))
 
 			# Handle memory blocks
+			hexBlockOfs = 0
 			for mb in self.memBlocks:
 
-				# Define offset address
-				b = [ 0x00, 0x00, 0x04, (mb.addr >> 8) & 0xFF, mb.addr & 0xFF ]
+				# Specify offset address
+				addr = (mb.addr >> 16) & 0xFFFF
+				_write(0x0000, 0x04, [(addr >> 8) & 0xFF, addr & 0xFF ])
+
+				# Start reading 0x10-sized blocks
+				iOfs = 0
+				iLen = 0x10
+				while iOfs < mb.size:
+
+					# Clip length when we are about to overflow
+					if iOfs+iLen > mb.size:
+						iLen = mb.size - iOfs
+
+					# If we are overflowing the 2-byte buffer of the hext
+					# file, inser a new offset address
+					if (iOfs-hexBlockOfs > 0xFFFF):
+						hexBlockOfs += 0x10000
+						addr = ((mb.addr + hexBlockOfs) >> 16) & 0xFF
+						_write(0x0000, 0x04, [(addr >> 8) & 0xFF, addr & 0xFF ])
+
+					# Write data
+					_write(iOfs-hexBlockOfs, 0x00, mb.bytes[iOfs:iOfs+iLen])
+
+					# Move forward
+					iOfs += iLen
+
+			# Write end-of-file
+			_write(0x00, 0x01, [])
+
 
 	def _loadHex(self):
 		"""
-		Load source file in HEX format
+		Read memory blocks from an IntelHEX file
 		"""
 
 		# Prepare memory block

@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCDebugger
+from cclib import CCDebugger, CCHEXFile
 import sys
 
 # Wait for filename
@@ -44,21 +44,23 @@ else:
 
 # Get serial number
 print "\nReading %i KBytes to %s..." % (dbg.chipInfo['flash'], sys.argv[1])
-with open(sys.argv[1], "wb") as oFile:
+hexFile = CCHEXFile(sys.argv[1])
 
-	# Read in chunks of 4Kb (for UI-purposes)
-	for i in range(0, int(dbg.chipInfo['flash'] / 4)):
+# Read in chunks of 4Kb (for UI-update purposes)
+for i in range(0, int(dbg.chipInfo['flash'] / 4)):
 
-		# Read CODE
-		chunk = dbg.readCODE( i * 0x1000, 0x1000 )
+	# Read CODE
+	chunk = dbg.readCODE( i * 0x1000, 0x1000 )
 
-		# Write chunk to file
-		oFile.write("".join(map(chr, chunk)))
+	# Write chunk to file
+	hexFile.stack(chunk)
 
-		# Log status
-		print "%.0f%%..." % ( ( (i+1)*4 * 100) / dbg.chipInfo['flash'] ),
-		sys.stdout.flush()
+	# Log status
+	print "%.0f%%..." % ( ( (i+1)*4 * 100) / dbg.chipInfo['flash'] ),
+	sys.stdout.flush()
 
+# Save file
+hexFile.save()
 
 # Done
 print "\n\nCompleted"

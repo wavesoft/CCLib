@@ -23,3 +23,5 @@
 *.pyc
 
 *.bin
+
+Python/test.py
