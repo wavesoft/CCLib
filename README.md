@@ -38,6 +38,11 @@ Usage
 4. Connect it to your CCxxxx chip
 5. Use the python scripts from the Python/ directory to read/flash your chip.
 
+Disclaimer
+----------
+
+I have successfully managed to flash various BLE112 modules using the scripts provided with this project, however I DO NOT GURANTEE THAT THIS WILL WORK IN YOUR CASE. **YOU ARE USING THIS CODE SOLELY AT YOUR OWN RISK!**
+
 License
 -------
 
