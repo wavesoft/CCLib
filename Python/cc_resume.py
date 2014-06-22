@@ -19,18 +19,20 @@ if dbg.chipInfo['usb']:
 	print "          USB : Yes"
 else:
 	print "          USB : No"
+print ""
 
-# Get device information from the read-only section
-print "\nDevice information:"
-print " IEEE Address : %s" % dbg.getSerial()
-print "           PC : %04x" % dbg.getPC()
+# Check if we are already outside the debug mode
+if (dbg.debugStatus & 0x20) == 0:
+	print "CPU Already running"
+	sys.exit(0)
 
-# Get bluegiga-specific info
-binfo = dbg.getBLEInfo()
-print "\nFirmware information:"
-print "      License : %s" % binfo['license']
-print "   BT Address : %s" % binfo['btaddr']
-print " Hardware Ver : %02x" % binfo['hwver']
+# Exit debug mode & resume CPU
+print "Exiting DEBUG mode..."
+dbg.exit()
+if (dbg.debugStatus & 0x20) == 0:
+	print "CPU is now running"
+else:
+	print "ERROR: Could not exit from debug mode"
 
 # Done
 print ""

@@ -49,6 +49,14 @@ class CCMemBlock:
 		self.size = 0
 		self.bytes = bytearray()
 
+	def contains(self, addr, size):
+		"""
+		Check if memory block contains the given address
+		"""
+
+		# Check bundaries
+		return (addr >= self.addr) and ((addr+size) <= (self.addr+self.size))
+
 	def isContinuous(self, addr):
 		"""
 		Check if it's continuous
@@ -59,6 +67,15 @@ class CCMemBlock:
 			return True
 		else:
 			return ((self.addr + self.size) == addr)
+
+	def set(self, offset, bytes):
+		"""
+		Update bock bytes
+		"""
+		#print "Replacing @ %04x (%i):" % (offset, len(bytes))
+		#print "<-", "".join(["%02x" % x for x in self.bytes[offset:offset+len(bytes)]])
+		self.bytes[offset:offset+len(bytes)] = bytes
+		#print "->", "".join(["%02x" % x for x in self.bytes[offset:offset+len(bytes)]])
 
 	def stack(self, bytes):
 		"""
@@ -87,6 +104,22 @@ class CCHEXFile:
 		Load file
 		"""
 		self._loadHex()
+
+	def set(self, addr, bytes):
+		"""
+		Update a memory region 
+		"""
+
+		# Try to find a block that contains
+		# the target region
+		for b in self.memBlocks:
+			if b.contains(addr, len(bytes)):
+				b.set(addr - b.addr, bytes)
+				return
+
+		# If none found, create new block
+		targetBlock = CCMemBlock(addr)
+		targetBlock.stack(bytes)
 
 	def _checksum(self, bytes):
 		"""

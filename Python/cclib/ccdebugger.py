@@ -48,6 +48,18 @@ CMD_PING     = 0xF0
 ANS_OK       = 0x01
 ANS_ERROR    = 0x02
 
+def toHex(data):
+	"""
+	Utility function to convert a buffer to hexadecimal
+	"""
+	return "".join( "%02x" % x for x in data )
+
+def fromHEX(data):
+	"""
+	Utility function to convert a hexadecimal string to buffer
+	"""
+	return bytearray([ int(data[x:x+2],16) for x in range(0,len(data),2) ])
+
 class CCDebugger:
 	"""
 	
@@ -88,6 +100,12 @@ class CCDebugger:
 		self.chipInfo = self.getChipInfo()
 		self.debugStatus = self.getStatus()
 		self.debugConfig = self.readConfig()
+
+		# Populate variables
+		self.flashSize = self.chipInfo['flash'] * 1024
+		self.flashPageSize = 0x800
+		self.sramSize = self.chipInfo['sram'] * 1024
+		self.bulkBlockSize = 0x800
 
 		# Validate chip
 		if (self.chipID & 0xff00) != 0x8d00:
@@ -133,7 +151,13 @@ class CCDebugger:
 		"""
 		Exit from debug mode by resuming the CPU
 		"""
-		return self.sendFrame(CMD_EXIT)
+		status = self.sendFrame(CMD_EXIT)
+		if not status:
+			return False
+		
+		# Update debug status
+		self.debugStatus = status
+		return status
 
 	def readConfig(self):
 		"""
@@ -430,47 +454,102 @@ class CCDebugger:
 		"""
 
 		# Read XDATA
-		data = self.readXDATA( 0x7800, 0x800 )
+		data = self.readXDATA( 0x7800, self.flashPageSize )
 
 		# Get license key
 		return data
 
-	def backupBLEInfoPage(self):
+	def getLastCODEPage(self):
 		"""
-		Return the Bluegiga information page (last)
-		"""
-
-		# Read the last 64 bytes from the last FLASH page
-		data = self.readCODE( 0x1ffc0, 0x40 )
-
-		# Get the information page
-		return data
-
-	def restoreBLEInfoPage(self, data):
-		"""
-		Write the Bluegiga information page (last)
+		Return the entire last flash page
 		"""
 
-		# Write the last 64 bytes to the last FLASH page
-		data = self.writeCODE( 0x1ffc0, data )
+		# Return the last page-size bytes
+		return self.readCODE( self.flashSize - self.flashPageSize, self.flashPageSize )
 
-		# Get the information page
-		return data
+	def writeLastCODEPage(self, pageData):
+		"""
+		Write the entire last flash code page
+		"""
+
+		# Validate page data
+		if len(pageData) > self.flashPageSize:
+			raise IOError("Data bigger than flash page size!")
+
+		# Write flash code page
+		return self.writeCODE( self.flashSize - self.flashPageSize, pageData, erase=True )
+
+	###############################################
+	# BlueGiga-Specific functions
+	###############################################
+
+	def mergeBLEInfoPage(self, target, source):
+		"""
+		Copy the last 64-bytes from source to target
+		"""
+
+		# Validate size
+		if len(target) != len(source):
+			raise IOError("Invalid sizes between target/souce blocks!")
+
+		# Copy upper 64 bytes
+		l = len(target)
+		target[l-0x40:l] = source[l-0x40:l]
+
+		# Return target
+		return target
+
+	def setBLELicense(self, target, license, fromHEX=True):
+		"""
+		Update the BLE info page and store the given license key
+		"""
+
+		# Check if we have to convert the license bytes
+		if fromHEX:
+			license = [ int(license[x:x+2],16) for x in range(0,len(license),2) ]
+
+		# Validate lincense size
+		if len(license) != 32:
+			raise IOError("Invalid license key size!")
+
+		# Update lincense region
+		l = len(target)
+		target[l-57:l-25] = license
+
+		# Return target
+		return target
+
+	def setBLEAddress(self, target, btAddress, fromHEX=True):
+		"""
+		Update the BLE info page and store the given license key
+		"""
+
+		# Check if we have to convert the bluetooth address bytes
+		if fromHEX:
+			btAddress = [ int(btAddress[x:x+2],16) for x in range(0,len(btAddress),3) ]
+
+		# Validate lincense size
+		if len(btAddress) != 6:
+			raise IOError("Invalid bluetooth address size!")
+
+		# Update lincense region
+		l = len(target)
+		target[l-22:l-16] = btAddress
+
+		# Return target
+		return target
 
 	def getBLEInfo(self):
 		"""
-		Return the translated Bluegiga information page (last)
+		Return the translated Bluegiga information struct (last 64 bits)
 		"""
 
 		# Get page data
-		page = self.backupBLEInfoPage()
+		page = self.readCODE( self.flashSize-0x40, 0x40 )
 
-		# Convert license to string
+		# Convert bytes to hex representation
 		strLic = "".join( "%02x" % x for x in page[7:39] )
-
-		# Convert address to string
-		strBTAddr = "".join( "%02x:" % x for x in page[42:48] )
-		strBTAddr = strBTAddr[0:len(strBTAddr)-1]
+		strBTAddr = "".join( "%02x:" % x for x in page[42:48] )[0:-1]
 
 		# Return translated information
 		return {
@@ -479,6 +558,33 @@ class CCDebugger:
 			"btaddr"  : strBTAddr,
 			"lockbits": page[48:64]
 		}
+
+	def getBLEPStoreSize(self):
+		"""
+		Return the size (in bytes) of the permanent store
+		"""
+
+		# PStore size is stored on 0x1F7EF as page number
+		a = self.readCODE(0x1F7EF, 1)
+
+		# Check for invalid values
+		if a[0] > int(self.flashSize / self.flashPageSize):
+			a[0] = 0
+
+		# Return size in bytes
+		return a[0] * self.flashPageSize
+
+	def getBLEPStore(self):
+		"""
+		Return the permanent store 
+		"""
+		pass
+
+	def setBLEPSStore(self, storePageData):
+		"""
+		Update the permanent store
+		"""
+		pass
 
 	###############################################
 	# DMA functions
@@ -559,6 +665,38 @@ class CCDebugger:
 			self.instr( 0x75, 0xD2, cLow  ) # MOV direct,#data @ DMA1CFGL
 			self.instr( 0x75, 0xD3, cHigh ) # MOV direct,#data @ DMA1CFGH
 
+	def getDMAConfig(self, index, memBase=0x1000):
+		"""
+		Read DMA configuration
+		"""
+		# Pick an offset in memory to store the configuration
+		memAddr = memBase + index*8
+		return self.readXDATA(memAddr, 8)
+
+	def setDMASrcAddr(self, index, srcAddr, memBase=0x1000):
+		"""
+		Set the DMA source address
+		"""
+
+		# Pick an offset in memory to store the configuration
+		memAddr = memBase + index*8
+		self.writeXDATA( memAddr, [
+			(srcAddr >> 8) & 0xFF,		# 0: SRCADDR[15:8]
+			(srcAddr & 0xFF),			# 1: SRCADDR[7:0]
+		])
+
+	def setDMADstAddr(self, index, dstAddr, memBase=0x1000):
+		"""
+		Set the DMA source address
+		"""
+
+		# Pick an offset in memory to store the configuration
+		memAddr = memBase + index*8
+		self.writeXDATA( memAddr+2, [
+			(dstAddr >> 8) & 0xFF,		# 2: DESTADDR[15:8]
+			(dstAddr & 0xFF),			# 3: DESTADDR[7:0]
+		])
+
 	def armDMAChannel(self, index):
 		"""
 		Arm a DMA channel (index in 0-4)
@@ -590,12 +728,26 @@ class CCDebugger:
 		# Update DMAARM state
 		self.setRegister( 0xD6, a )
 
-	def isDMAIRQ(self, index):
+	def isDMAArmed(self, index):
 		"""
 		Check if DMA IRQ flag is set (index in 0-4)
 		"""
 
 		# Get DMAARM state
+		a = self.getRegister( 0xD1 )
+
+		# Lookup IRQ bit
+		bit = pow(2, index)
+
+		# Check if IRQ bit is set
+		return ((a & bit) != 0)
+
+	def isDMAIRQ(self, index):
+		"""
+		Check if DMA IRQ flag is set (index in 0-4)
+		"""
+
+		# Get DMAIRQ state
 		a = self.getRegister( 0xD1 )
 
 		# Lookup IRQ bit
@@ -616,7 +768,7 @@ class CCDebugger:
 		flag = pow(2, index)
 		a &= ~flag
 
-		# Update DMAARM state
+		# Update DMAIRQ state
 		self.setRegister( 0xD1, a )
 
 	###############################################
@@ -692,7 +844,7 @@ class CCDebugger:
 		a[0] |= 0x01
 		return self.writeXDATA(0x6270, a)
 
-	def writeCODE(self, offset, data, erase=False, blockSize=0x800, flashPageSize=0x800, showProgress=False):
+	def writeCODE(self, offset, data, erase=False, verify=False, showProgress=False):
 		"""
 		Fully automated function for writing the Flash memory.
 
@@ -700,12 +852,16 @@ class CCDebugger:
 		"""
 
 		# Prepare DMA-0 for DEBUG -> RAM (using DBG_BW trigger)
-		self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=blockSize, srcInc=0, dstInc=1, priority=1, interrupt=True )
+		self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=self.bulkBlockSize, srcInc=0, dstInc=1, priority=1, interrupt=True )
 		# Prepare DMA-1 for RAM -> FLASH (using the FLASH trigger)
-		self.configDMAChannel( 1, 0x0000, 0x6273, 0x12, tlen=blockSize, srcInc=1, dstInc=0, priority=2, interrupt=True )
+		self.configDMAChannel( 1, 0x0000, 0x6273, 0x12, tlen=self.bulkBlockSize, srcInc=1, dstInc=0, priority=2, interrupt=True )
 
-		# Reset flash status
+		# Reset flags
 		self.clearFlashStatus()
+		self.clearDMAIRQ(0)
+		self.clearDMAIRQ(1)
+		self.disarmDMAChannel(0)
+		self.disarmDMAChannel(1)
 
 		# Split in 2048-byte chunks
 		iOfs = 0
@@ -717,17 +873,16 @@ class CCDebugger:
 				sys.stdout.flush()
 
 			# Get next page
-			iLen = min( len(data) - iOfs, blockSize )
+			iLen = min( len(data) - iOfs, self.bulkBlockSize )
 
-			# Update DMA configuration if we have less than blockSize data 
-			if (iLen < blockSize):
+			# Update DMA configuration if we have less than bulk-block size data 
+			if (iLen < self.bulkBlockSize):
 				self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=iLen, srcInc=0, dstInc=1, priority=1, interrupt=True )
 				self.configDMAChannel( 1, 0x0000, 0x6273, 0x12, tlen=iLen, srcInc=1, dstInc=0, priority=2, interrupt=True )
 
 			# Upload to RAM through DMA-0
-			self.clearDMAIRQ(0)
 			self.armDMAChannel(0)
-			self.brustWrite( data[iOfs:iLen] )
+			self.brustWrite( data[iOfs:iOfs+iLen] )
 
 			# Wait until DMA-0 raises interrupt
 			while not self.isDMAIRQ(0):
@@ -738,31 +893,49 @@ class CCDebugger:
 
 			# Calculate the page where this data belong to
 			fAddr = offset + iOfs
-			fPage = int( fAddr / flashPageSize )
-			fOffset = fAddr % flashPageSize
+			fPage = int( fAddr / self.flashPageSize )
 
 			# Calculate FLASH address High/Low bytes
-			cHigh = (fPage << 1) | ((fOffset << 8) & 0x01)
-			cLow = fOffset & 0xFF
-
-			# Set flash base address (FADDRL:FADDRH)
+			# for writing (addressable as 32-bit words)
+			fWordOffset = int(fAddr / 4)
+			cHigh = (fWordOffset >> 8) & 0xFF
+			cLow = fWordOffset & 0xFF
 			self.writeXDATA( 0x6271, [cLow, cHigh] )
+
+			# Debug
+			#print "[@%04x: p=%i, ofs=%04x, %02x:%02x]" % (fAddr, fPage, fWordOffset, cHigh, cLow),
+			#sys.stdout.flush()
 
 			# Check if we should erase page first
 			if erase:
+				# Select the page to erase using FADDRH[7:1]
+				#
+				# NOTE: Specific to (CC2530, CC2531, CC2540, and CC2541),
+				#       the CC2533 uses FADDRH[6:0]
+				#
+				cHigh = (fPage << 1)
+				cLow = 0
+				self.writeXDATA( 0x6271, [cLow, cHigh] )
 				# Set the erase bit
 				self.setFlashErase()
 				# Wait until flash is not busy any more
 				while self.isFlashBusy():
 					time.sleep(0.010)
 
+			# Verify debug upload integrity
+			if verify:
+				verifyBytes = self.readXDATA(0x0000, iLen)
+				for i in range(0, iLen):
+					if verifyBytes[i] != data[iOfs+i]:
+						raise IOError("PRE-Verification error on offset 0x%04x" % (fAddr+i))
+
 			# Upload to FLASH through DMA-1
-			self.clearDMAIRQ(1)
 			self.armDMAChannel(1)
 			self.setFlashWrite()
 
 			# Wait until DMA-1 raises interrupt
 			while not self.isDMAIRQ(1):
+				# Also check for errors
 				if self.isFlashAbort():
 					self.disarmDMAChannel(1)
 					raise IOError("Flash page 0x%02x is locked!" % fPage)
@@ -770,6 +943,13 @@ class CCDebugger:
 
 			# Clear DMA IRQ flag
 			self.clearDMAIRQ(1)
+
+			# Check if we should verify
+			if verify:
+				verifyBytes = self.readCODE(fAddr, iLen)
+				for i in range(0, iLen):
+					if verifyBytes[i] != data[iOfs+i]:
+						raise IOError("Verification error on offset 0x%04x" % (fAddr+i))
 
 			# Forward to next page
 			iOfs += iLen
