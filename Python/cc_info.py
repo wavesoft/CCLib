@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCDebugger, hexdump
+from cclib import CCDebugger, hexdump, renderDebugStatus, renderDebugConfig
 import sys
 
 # Open debugger
@@ -48,6 +48,11 @@ print "\nFirmware information:"
 print "      License : %s" % binfo['license']
 print "   BT Address : %s" % binfo['btaddr']
 print " Hardware Ver : %02x" % binfo['hwver']
+
+print "\nDebug status:"
+renderDebugStatus(dbg.debugStatus)
+print "\nDebug config:"
+renderDebugConfig(dbg.debugConfig)
 
 # Done
 print ""

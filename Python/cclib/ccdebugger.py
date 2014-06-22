@@ -116,6 +116,15 @@ class CCDebugger:
 			else:
 				return -bL
 
+		# Check for responses other than OK
+		elif status != ANS_OK:
+
+			# Ready is a special case
+			if status == ANS_READY:
+				return ANS_READY
+			else:
+				raise IOError("CCDebugger responded with an unknown status (0x%02x)" % status)
+
 		# Otherwise we are good
 		return (bH << 8) | bL
 

@@ -163,8 +163,7 @@ if pssize > 0:
 # Send chip erase
 print " - Chip erase..."
 try:
-#	dbg.chipErase()
-	pass
+	dbg.chipErase()
 except Exception as e:
  	print "ERROR: %s" % str(e)
  	sys.exit(3)
