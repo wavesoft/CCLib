@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# CCLib_proxy Utilities
+# CCLib_proxy Utilities - BlueGiga Specific
 # Copyright (c) 2014 Ioannis Charalampidis
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,12 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCDebugger, hexdump, renderDebugStatus, renderDebugConfig
+from cclib import hexdump, renderDebugStatus, renderDebugConfig
+from cclib.extensions.bluegiga import BlueGigaCCDebugger
 import sys
 
 # Open debugger
 try:
-	dbg = CCDebugger("/dev/tty.usbmodem12341")
+	dbg = BlueGigaCCDebugger("/dev/tty.usbmodem12341")
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
@@ -41,6 +42,13 @@ else:
 print "\nDevice information:"
 print " IEEE Address : %s" % dbg.getSerial()
 print "           PC : %04x" % dbg.getPC()
+
+# Get bluegiga-specific info
+binfo = dbg.getBLEInfo()
+print "\nFirmware information:"
+print "      License : %s" % binfo['license']
+print "   BT Address : %s" % binfo['btaddr']
+print " Hardware Ver : %02x" % binfo['hwver']
 
 print "\nDebug status:"
 renderDebugStatus(dbg.debugStatus)

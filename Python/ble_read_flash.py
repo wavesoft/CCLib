@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# CCLib_proxy Utilities
+# CCLib_proxy Utilities - BlueGiga Specific
 # Copyright (c) 2014 Ioannis Charalampidis
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,12 +17,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCDebugger, hexdump, renderDebugStatus, renderDebugConfig
+from cclib import CCHEXFile
+from cclib.extensions.bluegiga import BlueGigaCCDebugger
 import sys
+
+# Wait for filename
+if len(sys.argv) < 2:
+	print "ERROR: Please specify a filename to dump the FLASH memory to!"
+	sys.exit(1)
 
 # Open debugger
 try:
-	dbg = CCDebugger("/dev/tty.usbmodem12341")
+	dbg = BlueGigaCCDebugger("/dev/tty.usbmodem12341")
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
@@ -37,15 +43,26 @@ if dbg.chipInfo['usb']:
 else:
 	print "          USB : No"
 
-# Get device information from the read-only section
-print "\nDevice information:"
-print " IEEE Address : %s" % dbg.getSerial()
-print "           PC : %04x" % dbg.getPC()
+# Get serial number
+print "\nReading %i KBytes to %s..." % (dbg.chipInfo['flash'], sys.argv[1])
+hexFile = CCHEXFile(sys.argv[1])
 
-print "\nDebug status:"
-renderDebugStatus(dbg.debugStatus)
-print "\nDebug config:"
-renderDebugConfig(dbg.debugConfig)
+# Read in chunks of 4Kb (for UI-update purposes)
+for i in range(0, int(dbg.chipInfo['flash'] / 4)):
+
+	# Read CODE
+	chunk = dbg.readCODE( i * 0x1000, 0x1000 )
+
+	# Write chunk to file
+	hexFile.stack(chunk)
+
+	# Log status
+	print "%.0f%%..." % ( ( (i+1)*4 * 100) / dbg.chipInfo['flash'] ),
+	sys.stdout.flush()
+
+# Save file
+hexFile.save()
 
 # Done
+print "\n\nCompleted"
 print ""
