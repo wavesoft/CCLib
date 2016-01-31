@@ -118,10 +118,12 @@ def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kw
 
 	# Validate input
 	if port and not values['port']:
+		print shortDesc
 		print "ERROR: Please specify a serial port either with the CC_SERIAL environment variable or with the --port argument!"
 		sys.exit(1)
 	for k in required:
 		if not values[k]:
+			print shortDesc
 			print "ERROR: Missing argument '-%s', try %s --help for more details" % (k, sys.argv[0])
 			sys.exit(1)
 
