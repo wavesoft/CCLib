@@ -92,7 +92,7 @@ class CCDebugger:
 		self.bulkBlockSize = 0x800
 
 		# Validate chip
-		if ((self.chipID & 0xff00) != 0x8d00) && (self.chipID & 0xff00) != 0x4100)):
+		if ((self.chipID & 0xff00) != 0x8d00) and ((self.chipID & 0xff00) != 0x4100):
 			raise IOError("This class works ONLY with CC2540/2541 TI chips (This is a 0x%04x)!" % self.chipID)
 
 	###############################################

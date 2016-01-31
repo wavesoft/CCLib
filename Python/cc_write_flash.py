@@ -17,27 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCDebugger, CCHEXFile
+from cclib import CCDebugger, CCHEXFile, getOptions
 import sys
 
-def printHelp():
-	"""
-	Show help screen
-	"""
-	print "Usage: cc_write_flash.py <hex file>"
-	print ""
-	print "  <hex file> : The full path to the .hex file to flash on the device"
-	print ""
-
-# Wait for filename
-if len(sys.argv) < 2:
-	print "ERROR: Please specify a source hex filename!"
-	printHelp()
-	sys.exit(1)
+# Get serial port either form environment or from arguments
+opts = getOptions("Generic CCDebugger Flash Writer Tool", hexIn=True)
 
 # Open debugger
 try:
-	dbg = CCDebugger("/dev/tty.usbmodem12341")
+	dbg = CCDebugger(opts['port'])
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
@@ -56,12 +44,12 @@ else:
 serial = dbg.getSerial()
 
 # Parse the HEX file
-hexFile = CCHEXFile( sys.argv[1] )
+hexFile = CCHEXFile( opts['in'] )
 hexFile.load()
 
 # Display sections & calculate max memory usage
 maxMem = 0
-print "Sections in %s:\n" % sys.argv[1]
+print "Sections in %s:\n" % opts['in']
 print " Addr.    Size"
 print "-------- -------------"
 for mb in hexFile.memBlocks:

@@ -17,13 +17,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import hexdump, renderDebugStatus, renderDebugConfig
+from cclib import hexdump, renderDebugStatus, renderDebugConfig, getOptions
 from cclib.extensions.bluegiga import BlueGigaCCDebugger
 import sys
+import os
+
+# Get serial port either form environment or from arguments
+opts = getOptions("BlueGiga-Specific CCDebugger Information Tool")
 
 # Open debugger
 try:
-	dbg = BlueGigaCCDebugger("/dev/tty.usbmodem12341")
+	dbg = BlueGigaCCDebugger(opts['port'])
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)

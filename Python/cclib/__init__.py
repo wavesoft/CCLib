@@ -20,3 +20,112 @@
 from cclib.ccdebugger import *
 from cclib.cchex import *
 
+def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kwargs):
+	"""
+	"""
+	import getopt
+	import sys
+	import os
+
+	values = {}
+	required = []
+	arguments = []
+	arguments.append( ('h', 'help', 'Display this help screen' ) )
+	arg_help = "[-h|--help]"
+
+	# Append some other options
+	if hexIn:
+		values['in'] = None
+		arg_help += " [-i|--in=<hex file>]"
+		arguments.append( ('i:', 'in=', 'Specify the hex file to read from' ) )
+		required.append('in')
+	if hexOut:
+		values['out'] = None
+		arg_help += " [-o|--out=<hex file>]"
+		arguments.append( ('o:', 'out=', 'Specify the hex file to write to' ) )
+		required.append('out')
+	if port:
+		values['port'] = os.environ.get("CC_SERIAL", None)
+		arg_help += " [-p|--port=<serial>]"
+		arguments.append( ('p:', 'port=', 'Specify the serial port to use (defaults to CC_SERIAL variable)' ) )
+		required.append('port')
+
+	# Append custom keyword arguments
+	for k,v in kwargs:
+		if (v[0] == "="):
+			values[k] = None
+			arg_help += " [-%s|--%s=]" % (k[0], k)
+			arguments.append( (k[0]+':', k+'=', v[1:]) )
+		else:
+			values[k] = False
+			arg_help += " [-%s|--%s]" % (k[0], k)
+			arguments.append( (k[0], k, v) )
+
+	# Parse options
+	try:
+		opts, args = getopt.getopt(
+			sys.argv[1:], "".join(map(lambda v: v[0], arguments)), 
+			map(lambda v: v[1], arguments) )
+	except getopt.GetoptError as err:
+		print "ERROR: %s" % str(err) 
+		print shortDesc
+		print "Usage: %s %s %s" % (sys.argv[0], arg_help, argHelp)
+		print ""
+		for a in arguments:
+			if a[0][-1] == ':':
+				args = "-%s,--%s=" % (a[0][:-1], a[1][:-1])
+				print " %20s %s" % (args, a[2])
+			else:
+				args = "-%s,--%s" % (a[0], a[1])
+				print " %20s %s" % (args, a[2])
+		print ""
+		sys.exit(2)
+
+	# Parse options
+	for o, v in opts:
+		if o in ("-h", "--help"):
+			print shortDesc
+			print "Usage: %s %s %s" % (sys.argv[0], arg_help, argHelp)
+			print ""
+			for a in arguments:
+				if a[0][-1] == ':':
+					args = "-%s,--%s=" % (a[0][:-1], a[1][:-1])
+					print " %20s %s" % (args, a[2])
+				else:
+					args = "-%s,--%s" % (a[0], a[1])
+					print " %20s %s" % (args, a[2])
+			print ""
+			sys.exit()
+		else:
+			# Process arguments
+			found = False
+			for a in arguments:
+				if a[0][-1] == ':':
+					test = ('-%s' % a[0][:-1], '--%s' % a[1][:-1])
+					if o in test:
+						values[a[1][:-1]] = v
+						found = True
+				else:
+					test = ('-%s' % a[0], '--%s' % a[1])
+					if o in test:
+						values[a[1]] = True
+						found = True
+
+			# Check missing
+			if not found:
+				print "ERROR: Unknown parameter %s" % o
+				sys.exit(1)
+
+	# Validate input
+	if port and not values['port']:
+		print "ERROR: Please specify a serial port either with the CC_SERIAL environment variable or with the --port argument!"
+		sys.exit(1)
+	for k in required:
+		if not values[k]:
+			print "ERROR: Missing argument '-%s', try %s --help for more details" % (k, sys.argv[0])
+			sys.exit(1)
+
+	# Include raw args
+	values['args'] = args
+	return values
+

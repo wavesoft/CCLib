@@ -17,31 +17,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCHEXFile
+from cclib import CCHEXFile, getOptions
 from cclib.extensions.bluegiga import BlueGigaCCDebugger
 import sys
 
-def printHelp():
-	"""
-	Show help screen
-	"""
-	print "Usage: cc_write_flash.py <hex file> [[[<license key>] <bt address>] <hw version>]"
-	print ""
-	print "  <hex file>    : The full path to the .hex file to flash on the device"
-	print "  <license key> : A 32-byte, hex representation of the license key (64 characters)"
-	print "   <bt address> : A bluetooth mac address in XX:XX:XX:XX:XX:XX format"
-	print "   <hw version> : A decimal number that defines the hardware version"
-	print ""
-
-# Wait for filename
-if len(sys.argv) < 2:
-	print "ERROR: Please specify a source hex filename!"
-	printHelp()
-	sys.exit(1)
+# Get serial port either form environment or from arguments
+opts = getOptions("BlueGiga-Specific CCDebugger Flash Writer Tool", hexIn=True, 
+	license="A 32-byte, hex representation of the license key (64 characters)",
+	addr="A bluetooth mac address in XX:XX:XX:XX:XX:XX format",
+	ver="A decimal number that defines the hardware version")
 
 # Open debugger
 try:
-	dbg = BlueGigaCCDebugger("/dev/tty.usbmodem12341")
+	dbg = BlueGigaCCDebugger(opts['port'])
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
@@ -70,15 +58,14 @@ for x in binfo['license']:
 		hasLicense = True
 		break
 
-if not hasLicense or (len(sys.argv)>=3):
-	if len(sys.argv) < 3:
+if not hasLicense:
+	if opts['license'] is None:
 		print "ERROR: Your device has no license key"
 		print "ERROR: You must specify a license key from the command line!"
-		printHelp()
 		sys.exit(5)
 	else:
 
-		licKey = sys.argv[2]
+		licKey = opts['license']
 		if len(licKey) != 64:
 			print "ERROR: Invalid license key specified!"
 			sys.exit(5)
@@ -86,25 +73,24 @@ if not hasLicense or (len(sys.argv)>=3):
 			licMessage = "(From command-line)"
 			binfo['license'] = licKey
 
-		if len(sys.argv) < 4:
+		if opts['addr'] is None:
 			if not hasLicense:
 				binfo['btaddr'] = "".join([ "%s:" % serial[x:x+2] for x in range(0,len(serial),2) ])[0:-1]
 				btaMessage = " (Generated using IEEE address)"
 		else:
-			if len(sys.argv[3]) != 17:
+			if len(opts['addr']) != 17:
 				print "ERROR: Invalid BT Address specified!"
-				printHelp()
 				sys.exit(5)
 			btaMessage = "(From command-line)"
-			binfo['btaddr'] = sys.argv[3]
+			binfo['btaddr'] = opts['addr']
 
 		# Reset Hardware Version
-		if len(sys.argv) < 5:
+		if opts['ver'] is None:
 			if not hasLicense:
 				binfo['hwver'] = 0x01
 		else:
 			hwvMessage = "(From command-line)"
-			binfo['hwver'] = int(sys.argv[4])
+			binfo['hwver'] = int(opts['ver'])
 
 # Print collected license information
 print "\nLicense information:"
@@ -115,12 +101,12 @@ print "      License : %s" % binfo['license'], licMessage
 print ""
 
 # Parse the HEX file
-hexFile = CCHEXFile( sys.argv[1] )
+hexFile = CCHEXFile( opts['in'] )
 hexFile.load()
 
 # Display sections & calculate max memory usage
 maxMem = 0
-print "Sections in %s:\n" % sys.argv[1]
+print "Sections in %s:\n" % opts['in']
 print " Addr.    Size"
 print "-------- -------------"
 for mb in hexFile.memBlocks:

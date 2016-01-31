@@ -17,18 +17,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCHEXFile
+from cclib import CCHEXFile, getOptions
 from cclib.extensions.bluegiga import BlueGigaCCDebugger
 import sys
 
-# Wait for filename
-if len(sys.argv) < 2:
-	print "ERROR: Please specify a filename to dump the FLASH memory to!"
-	sys.exit(1)
+# Get serial port either form environment or from arguments
+opts = getOptions("BlueGiga-Specific CCDebugger Flash Reader Tool", hexOut=True)
 
 # Open debugger
 try:
-	dbg = BlueGigaCCDebugger("/dev/tty.usbmodem12341")
+	dbg = BlueGigaCCDebugger(opts['port'])
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
@@ -44,8 +42,8 @@ else:
 	print "          USB : No"
 
 # Get serial number
-print "\nReading %i KBytes to %s..." % (dbg.chipInfo['flash'], sys.argv[1])
-hexFile = CCHEXFile(sys.argv[1])
+print "\nReading %i KBytes to %s..." % (dbg.chipInfo['flash'], opts['out'])
+hexFile = CCHEXFile(opts['out'])
 
 # Read in chunks of 4Kb (for UI-update purposes)
 for i in range(0, int(dbg.chipInfo['flash'] / 4)):

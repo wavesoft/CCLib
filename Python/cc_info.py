@@ -17,12 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCDebugger, hexdump, renderDebugStatus, renderDebugConfig
+from cclib import CCDebugger, hexdump, renderDebugStatus, renderDebugConfig, getOptions
 import sys
+
+# Get serial port either form environment or from arguments
+opts = getOptions("Generic CCDebugger Information Tool")
 
 # Open debugger
 try:
-	dbg = CCDebugger("/dev/tty.usbmodem12341")
+	dbg = CCDebugger(opts['port'])
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
