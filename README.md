@@ -15,7 +15,7 @@ If you are just in hurry to flash your CCxxxx chip, follow this guide, however y
 1. Install the `Arduino/CCLib` library [to your arduino IDE](https://www.arduino.cc/en/Guide/Libraries)
 2. Load the `CCLib_proxy` example and change the the `LED`, `CC_RST`, `CC_DC`, `CC_DD_I` and `CC_DD_O` constants to match your configuration.
 3. Flash it to your Teensy/Arduino
-4. Wire your arduino to your CCxxxx chip, according to the following diagram:
+4. We are going to need a voltage divider from 5V (arduino) to 3.3V (CCxxxx chip), therefore you will need to wire your arduino according to the following diagram:
 
 ```
 For the DD Pin:
