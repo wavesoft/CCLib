@@ -35,6 +35,9 @@ For the RST Pin:
 
 Where `{DD}`, `{DC}` and `{RST}` are the pins on the CCxxxx chip and `<CC_DD_O>`, `<CC_DD_I>`, `<CC_DC>`, `<CC_RST>` are the pins in your ardiuno board.
 
+In an arduino set-up, this looks like this:
+
+![Arduino Sketch](https://raw.githubusercontent.com/wavesoft/CCLib/master/Schematic/arduino-wiring.png)
 
 ### 2. Prepare your software
 
