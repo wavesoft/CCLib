@@ -118,15 +118,21 @@ In order to flash a CCxxxx chip there is a need to invoke CPU instructions, whic
     </tr>
     <tr>
         <td>CC2540</td>
-        <td>0x8d??</td>
+        <td><strong>0x8d</strong>..</td>
         <td>CC254X</td>
         <td>Works</td>
     </tr>
     <tr>
         <td>CC2541</td>
-        <td>0x41??</td>
+        <td><strong>0x41</strong>..</td>
         <td>CC254X</td>
-        <td>Partially works</td>
+        <td>Partially working</td>
+    </tr>
+    <tr>
+        <td>CS2510</td>
+        <td><strong>0x81</strong>..</td>
+        <td>CS2510</td>
+        <td>Work in progress</td>
     </tr>
 </table>
 
