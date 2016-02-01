@@ -32,7 +32,7 @@
 #define I_DEBUG_INSTR_2 6
 #define I_DEBUG_INSTR_3 7
 #define I_GET_CHIP_ID   8
-#define I_GET_IC        9
+#define I_GET_PC        9
 #define I_READ_STATUS   10
 #define I_STEP_INSTR    11
 #define I_CHIP_ERASE    12
@@ -764,7 +764,7 @@ byte CCDebugger::chipErase()
 /**
  * Update the debug instruction table
  */
-byte updateInstructionTable( byte newTable[16] )
+byte CCDebugger::updateInstructionTable( byte newTable[16] )
 {
   // Copy table entries
   for (byte i=0; i<16; i++)
@@ -776,7 +776,7 @@ byte updateInstructionTable( byte newTable[16] )
 /**
  * Get the instruction table version
  */
-byte getInstructionTableVersion()
+byte CCDebugger::getInstructionTableVersion()
 {
   // Return version of instruction table
   return instr[INSTR_VERSION];

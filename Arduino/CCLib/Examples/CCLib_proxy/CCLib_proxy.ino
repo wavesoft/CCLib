@@ -291,7 +291,7 @@ void loop() {
     sendFrame( ANS_OK, bAns );
 
   } else if (inByte == CMD_INSTR_VER) {
-    bAns = db->getInstructionTableVersion();
+    bAns = dbg->getInstructionTableVersion();
     if (handleError()) return;
     sendFrame( ANS_OK, bAns );
 
@@ -310,7 +310,7 @@ void loop() {
     }
 
     // Update instruction buffer
-    bAns = db->updateInstructionTable( instrBuffer );
+    bAns = dbg->updateInstructionTable( instrBuffer );
     if (handleError()) return;
     sendFrame( ANS_OK, bAns );
 
