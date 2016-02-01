@@ -76,7 +76,6 @@ class CC2510(ChipDriver):
 		self.bulkBlockSize = 0x400 # < This should be the same as the flash page size
 		self.flashWordSize = 2 #cc251x have 2 bytes per word
 
-
 	###############################################
 	# Data reading
 	###############################################
@@ -105,7 +104,7 @@ class CC2510(ChipDriver):
 		"""
 		Write any size of buffer in the XDATA region
 		"""
-
+		
 		# Setup DPTR
 		a = self.instri( 0x90, offset )		# MOV DPTR,#data16
 
@@ -130,8 +129,22 @@ class CC2510(ChipDriver):
 		# Recalibrate offset
 		offset -= fBank * 0x8000
 
-		# Read XDATA-mapped CODE region
-		return self.readXDATA( 0x8000 + offset, size )
+		# Setup DPTR
+		a = self.instri( 0x90, offset )		# MOV DPTR,#data16
+
+		# Prepare ans array
+		ans = bytearray()
+
+		# Read bytes
+		for i in range(0, size):
+			a = self.instr ( 0xE4 )			# MOVX A,@DPTR
+			a = self.instr ( 0x93 )			# MOVX A,@DPTR
+			ans.append(a)
+			a = self.instr ( 0xA3 )			# INC DPTR
+
+
+		#
+		return ans
 
 
 	def getRegister( self, reg ):
@@ -150,9 +163,11 @@ class CC2510(ChipDriver):
 		"""
 		Select XDATA bank from the Memory Arbiter Control register
 		"""
-		a = self.getRegister( 0xC7 )
-		a = (a & 0xF8) | (bank & 0x07)
-		return self.setRegister( 0xC7, a )
+		#a = self.getRegister( 0xC7 )
+		#a = (a & 0xF8) | (bank & 0x07)
+		#return self.setRegister( 0xC7, a )
+		return self.instr(0x75, 0xC7, bank*16 + 1);
+		
 
 	def selectFlashBank(self, bank):
 		"""
@@ -227,191 +242,131 @@ class CC2510(ChipDriver):
 		# Write flash code page
 		return self.writeCODE( self.flashSize - self.flashPageSize, pageData, erase=True )
 
-
 	###############################################
-	# DMA functions
+	# cc251x
 	###############################################
+	
+	def readFlashPage(self, address):
+		if (not self.debug_active):
+			print "ERROR: not in debug mode! did you forget a enter() call?\n"
+			sys.exit(2)
+		return self.readCODE(address & 0x7FFFF, self.flashPageSize)
+	
+	def writeFlashPage(self, address, inputArray, erase_page=True):
+		if len(inputArray) != self.flashPageSize:
+			raise IOError("input data size != flash page size!")
+		
+		if (not self.debug_active):
+			print "ERROR: not in debug mode! did you forget a enter() call?\n"
+			sys.exit(2)
 
-	def pauseDMA(self, pause):
-		"""
-		Pause/Unpause DMA in debug mode
-		"""
-		# Get current debug config
-		a = self.readConfig()
-		# Update
-		if pause:
-			a |= 0x4
-		else:
-			a &= ~0x4
-		# Commit
-		self.writeConfig(a)
-
-	def configDMAChannel(self, index, srcAddr, dstAddr, trigger, vlen=0, tlen=1, 
-		word=False, transferMode=0, srcInc=0, dstInc=0, interrupt=False, m8=True, 
-		priority=0, memBase=0x1000):
-		"""
-		Create a DMA buffer and place it in memory
-		"""
-
-		# Calculate numeric flags
-		nword = 0
-		if word:
-			nword = 1
-		nirq = 0
-		if interrupt:
-			nirq = 1
-		nm8 = 1
-		if m8:
-			nm8 = 0
-
-		# Prepare DMA configuration bytes
-		config = [
-			(srcAddr >> 8) & 0xFF,		# 0: SRCADDR[15:8]
-			(srcAddr & 0xFF),			# 1: SRCADDR[7:0]
-			(dstAddr >> 8) & 0xFF,		# 2: DESTADDR[15:8]
-			(dstAddr & 0xFF),			# 3: DESTADDR[7:0]
-			(vlen & 0x07) << 5 |		# 4: VLEN[2:0]
-			((tlen >> 8) & 0x1F),		# 4: LEN[12:8]
-			(tlen & 0xFF),				# 5: LEN[7:0]
-			(nword << 7) |				# 6: WORDSIZE
-			(transferMode << 5) |		# 6: TMODE[1:0]
-			(trigger & 0x1F),			# 6: TRIG[4:0]
-			((srcInc & 0x03) << 6) |	# 7: SRCINC[1:0]
-			((dstInc & 0x03) << 4) |	# 7: DESTINC[1:0]
-			(nirq << 3) |				# 7: IRQMASK
-			(nm8 << 2) |				# 7: M8
-			(priority & 0x03)			# 7: PRIORITY[1:0]
+		#calc words per flash page
+		words_per_flash_page = self.flashPageSize / self.flashWordSize
+		
+		#print "words_per_flash_page = %d" % (words_per_flash_page)
+		#print "flashWordSize = %d" % (self.flashWordSize)
+		if (erase_page): 
+			print "[page erased]",
+			
+		routine8_1 = [
+			#see http://www.ti.com/lit/ug/swra124/swra124.pdf page 11
+			0x75, 0xAD, ((address >> 8) / self.flashWordSize) & 0x7E, 	#MOV FADDRH, #imm; 
+			0x75, 0xAC, 0x00						#MOV FADDRL, #00;
 		]
+		routine8_erase = [
+			0x75, 0xAE, 0x01,						#MOV FLC, #01H; // ERASE 
+			#; Wait for flash erase to complete 
+			0xE5, 0xAE,							#eraseWaitLoop:  MOV A, FLC; 
+			0x20, 0xE7, 0xFB						#JB ACC_BUSY, eraseWaitLoop;
+		]
+		routine8_2 = [
+			#; Initialize the data pointer 
+			0x90, 0xF0, 0x00,						#MOV DPTR, #0F000H; 
+			#; Outer loops 
+			0x7F, (((words_per_flash_page)>>8)&0xFF),			#MOV R7, #imm; 
+			0x7E, ((words_per_flash_page)&0xFF),				#MOV R6, #imm; 
+			0x75, 0xAE, 0x02,						#MOV FLC, #02H; // WRITE 
+			#; Inner loops 
+			0x7D, self.flashWordSize,					#writeLoop:          MOV R5, #imm; 
+			0xE0,								#writeWordLoop:          MOVX A, @DPTR; 
+			0xA3,								#INC DPTR; 
+			0xF5, 0xAF,							#MOV FWDATA, A;  
+			0xDD, 0xFA,							#DJNZ R5, writeWordLoop; 
+			#; Wait for completion 
+			0xE5, 0xAE,							#writeWaitLoop:      MOV A, FLC; 
+			0x20, 0xE6, 0xFB,						#JB ACC_SWBSY, writeWaitLoop; 
+			0xDE, 0xF1,							#DJNZ R6, writeLoop; 
+			0xDF, 0xEF,							#DJNZ R7, writeLoop; 
+			#set green led for debugging info (DO NOT USE THIS!)
+			#LED_GREEN_DIR |= (1<<LED_GREEN_PIN);
+			#0x43, 0xFF, 0x18,	#      [24]  935         orl     _P2DIR,#0x10
+			#LED_GREEN_PORT = (1<<LED_GREEN_PIN);
+			#0x75, 0xA0, 0x18,	#      [24]  937         mov     _P2,#0x10
+			#; Done with writing, fake a breakpoint in order to HALT the cpu
+			0xA5								#DB 0xA5; 
+		]
+		
+		#build routine 
+		routine = routine8_1
+		if (erase_page):
+			routine += routine8_erase
+		routine += routine8_2
+		
+		#add led code to flash code (for debugging)
+		#aroutine = led_routine + routine
+		#routine = routine + led_routine
+		
+		#for x in routine:
+		#	print "%02X" % (x),
+		
+		#halt CPU
+		self.halt()
+		
+		#send data to xdata memory:
+		if (self.show_debug_info): print "copying data to xdata"
+		self.writeXDATA(0xF000, inputArray)
+		
+		#send program to xdata mem
+		if (self.show_debug_info): print "copying flash routine to xdata"
+		self.writeXDATA(0xF000 + self.flashPageSize, routine)
+	
+		if (self.show_debug_info): print "executing code"
+		#execute MOV MEMCTR, (bank * 16) + 1; 
+		self.instr(0x75, 0xC7, 0x51)
+		
+		#set PC to start of program
+		self.setPC(0xF000 + self.flashPageSize)
+		
+		#start program exec, will continue after routine exec due to breakpoint
+		self.resume()
+		
+		
+		if (self.show_debug_info): print "page write running",
+		
+		#set some timeout (2 seconds)
+		timeout = 200
+		while (timeout > 0):
+			#show progress
+			if (self.show_debug_info): 
+				print ".",
+				sys.stdout.flush()
+			#check status (bit 0x20 = cpu halted)
+			if ((self.getStatus() & 0x20 ) != 0):
+				if (self.show_debug_info): print "done"
+				break
+			#timeout increment
+			timeout -= 1
+			#delay (10ms)
+			time.sleep(0.01)
+			
+		
+		if (timeout <=0):
+			raise IOError("flash write timed out!")
+		
+		self.halt()
+		
+		if (self.show_debug_info): print "done"
 
-		# Pick an offset in memory to store the configuration
-		memAddr = memBase + index*8
-		self.writeXDATA( memAddr, config )
-
-		# Split address in high/low
-		cHigh = (memAddr >> 8) & 0xFF
-		cLow = (memAddr & 0xFF)
-
-		# Update DMA registers
-		if index == 0:
-			self.instr( 0x75, 0xD4, cLow  ) # MOV direct,#data @ DMA0CFGL
-			self.instr( 0x75, 0xD5, cHigh ) # MOV direct,#data @ DMA0CFGH
-
-		else:
-
-			# For DMA1+ they reside one after the other, starting
-			# on the base address of the first in DMA1CFGH:DMA1CFGL
-			memAddr = memBase + 8
-			cHigh = (memAddr >> 8) & 0xFF
-			cLow = (memAddr & 0xFF)
-
-			self.instr( 0x75, 0xD2, cLow  ) # MOV direct,#data @ DMA1CFGL
-			self.instr( 0x75, 0xD3, cHigh ) # MOV direct,#data @ DMA1CFGH
-
-	def getDMAConfig(self, index, memBase=0x1000):
-		"""
-		Read DMA configuration
-		"""
-		# Pick an offset in memory to store the configuration
-		memAddr = memBase + index*8
-		return self.readXDATA(memAddr, 8)
-
-	def setDMASrcAddr(self, index, srcAddr, memBase=0x1000):
-		"""
-		Set the DMA source address
-		"""
-
-		# Pick an offset in memory to store the configuration
-		memAddr = memBase + index*8
-		self.writeXDATA( memAddr, [
-			(srcAddr >> 8) & 0xFF,		# 0: SRCADDR[15:8]
-			(srcAddr & 0xFF),			# 1: SRCADDR[7:0]
-		])
-
-	def setDMADstAddr(self, index, dstAddr, memBase=0x1000):
-		"""
-		Set the DMA source address
-		"""
-
-		# Pick an offset in memory to store the configuration
-		memAddr = memBase + index*8
-		self.writeXDATA( memAddr+2, [
-			(dstAddr >> 8) & 0xFF,		# 2: DESTADDR[15:8]
-			(dstAddr & 0xFF),			# 3: DESTADDR[7:0]
-		])
-
-	def armDMAChannel(self, index):
-		"""
-		Arm a DMA channel (index in 0-4)
-		"""
-
-		# Get DMAARM state
-		a = self.getRegister(0xD6) # MOV A,direct @ DMAARM
-
-		# Set given flag
-		a |= pow(2, index)
-
-		# Update DMAARM state
-		self.setRegister(0xD6, a) # MOV direct,#data @ DMAARM
-
-		time.sleep(0.01)
-
-	def disarmDMAChannel(self, index):
-		"""
-		Disarm a DMA channel (index in 0-4)
-		"""
-
-		# Get DMAARM state
-		a = self.getRegister( 0xD6 )
-
-		# Unset given flag
-		flag = pow(2, index)
-		a &= ~flag
-
-		# Update DMAARM state
-		self.setRegister( 0xD6, a )
-
-	def isDMAArmed(self, index):
-		"""
-		Check if DMA IRQ flag is set (index in 0-4)
-		"""
-
-		# Get DMAARM state
-		a = self.getRegister( 0xD1 )
-
-		# Lookup IRQ bit
-		bit = pow(2, index)
-
-		# Check if IRQ bit is set
-		return ((a & bit) != 0)
-
-	def isDMAIRQ(self, index):
-		"""
-		Check if DMA IRQ flag is set (index in 0-4)
-		"""
-
-		# Get DMAIRQ state
-		a = self.getRegister( 0xD1 )
-
-		# Lookup IRQ bit
-		bit = pow(2, index)
-
-		# Check if IRQ bit is set
-		return ((a & bit) != 0)
-
-	def clearDMAIRQ(self, index):
-		"""
-		Clear DMA IRQ flag (index in 0-4)
-		"""
-
-		# Get DMAIRQ state
-		a = self.getRegister( 0xD1 )
-
-		# Unset given flag
-		flag = pow(2, index)
-		a &= ~flag
-
-		# Update DMAIRQ state
-		self.setRegister( 0xD1, a )
 
 	###############################################
 	# Flash functions
@@ -481,7 +436,7 @@ class CC2510(ChipDriver):
 		Set the ERASE bit in the flash control register
 		"""
 
-		# Set flash ERASE bit 
+		# Set flash ERASE bit
 		a = self.readXDATA(0x6270, 1)
 		a[0] |= 0x01
 		return self.writeXDATA(0x6270, a)
@@ -598,5 +553,3 @@ class CC2510(ChipDriver):
 
 		if showProgress:
 			print "ok"
-
-
