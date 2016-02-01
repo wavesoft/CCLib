@@ -9,7 +9,7 @@ but it might also support other versions too.
 
 ## Usage
 
-If you are just in hurry to flash your CCxxxx chip, follow this guide, however you should first check the compatibility table later in this document!
+If you are just in hurry to flash your CCxxxx chip, follow this guide, however you should first check the [compatibility table](#compatibility-table) later in this document!
 
 ### 1. Prepare your arduino board
 
@@ -132,7 +132,58 @@ In order to flash a CCxxxx chip there is a need to invoke CPU instructions, whic
 
 ### Contributing other chip drivers
 
+Since the arduino sketch is quite simple, it's possible to support any CCxxxx device solely by creating a new chip driver. Even if your chip uses a different debug protocol instruction set (such as CC2510) you can modify it on-the-fly.
 
+In order to create a new chip driver you should create a new file in the `Python/cclib/chip` folder with the name of your chip (for example `cc2510.py`), and create a new Python class, subclassing from the `ChipDriver` class. For example:
+
+```python
+class CC2510(ChipDriver):
+    """
+    Chip-specific code for CC2510 SOC
+    """
+
+    @staticmethod
+    def test(chipID):
+        """
+        Check if this ChipID can be handled by this class
+        """
+        return ((self.chipID & 0xff00) == 0x8100)
+
+    def chipName(self):
+        """
+        Return Chip Name
+        """
+        return "CC2510"
+
+    def initialize(self):
+        """
+        Initialize chip driver
+        """
+
+        # Get chip info
+        self.chipInfo = self.getChipInfo()
+
+        # Populate variables
+        self.flashSize = self.chipInfo['flash'] * 1024
+        self.flashPageSize = 0x400
+        self.sramSize = self.chipInfo['sram'] * 1024
+        self.bulkBlockSize = 0x800
+        self.flashWordSize = 2
+
+```
+
+And you must then register your class in the `Python/cclib/ccdebugger.py`
+
+```python
+# Chip drivers the CCDebugger will test for
+from cclib.chip.cc2540x import CC254X
+from cclib.chip.cc2510 import CC2510
+CHIP_DRIVERS = [ CC254X, CC2510 ]
+```
+
+After that you need to implement all the functions exposed by the `ChipDriver` (available in `Python/cclib/chip/__init__.py`), but you can just copy the `cc2540x.py` driver and work on top of it.
+
+We are looking forward for your support for new chips!
 
 ## Protocol
 

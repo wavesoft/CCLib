@@ -22,6 +22,7 @@ from cclib.cchex import *
 
 def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kwargs):
 	"""
+	Reusable function to collect command-line options.
 	"""
 	import getopt
 	import sys
