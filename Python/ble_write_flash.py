@@ -25,7 +25,8 @@ import sys
 opts = getOptions("BlueGiga-Specific CCDebugger Flash Writer Tool", hexIn=True, 
 	license="A 32-byte, hex representation of the license key (64 characters)",
 	addr="A bluetooth mac address in XX:XX:XX:XX:XX:XX format",
-	ver="A decimal number that defines the hardware version")
+	ver="A decimal number that defines the hardware version",
+	erase="Full chip erase before write")
 
 # Open debugger
 try:
@@ -149,12 +150,13 @@ if pssize > 0:
 	hexFile.set( 0x18000, pstoreData )
 
 # Send chip erase
-print " - Chip erase..."
-try:
-	dbg.chipErase()
-except Exception as e:
- 	print "ERROR: %s" % str(e)
- 	sys.exit(3)
+if opts['erase']:
+	print " - Chip erase..."
+	try:
+		dbg.chipErase()
+	except Exception as e:
+	 	print "ERROR: %s" % str(e)
+	 	sys.exit(3)
 
 # Flash memory
 dbg.pauseDMA(False)
