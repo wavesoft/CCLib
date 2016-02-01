@@ -24,7 +24,8 @@ import sys
 
 # Chip drivers the CCDebugger will test for
 from cclib.chip.cc254x import CC254X
-CHIP_DRIVERS = [ CC254X ]
+from cclib.chip.cc2510 import CC2510
+CHIP_DRIVERS = [ CC254X, CC2510 ]
 
 def openCCDebugger( port, driver=None ):
 	"""

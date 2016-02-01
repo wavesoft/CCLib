@@ -134,7 +134,7 @@ In order to flash a CCxxxx chip there is a need to invoke CPU instructions, whic
         <td>CS2510</td>
         <td><strong>0x81</strong>..</td>
         <td>CS2510</td>
-        <td>:red_circle: Work in progress</td>
+        <td>:large_orange_diamond: Looking for testers</td>
     </tr>
 </table>
 
