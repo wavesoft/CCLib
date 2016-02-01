@@ -23,7 +23,7 @@ import time
 import sys
 
 # Chip drivers the CCDebugger will test for
-from cclib.chip.cc2540x import CC254X
+from cclib.chip.cc254x import CC254X
 CHIP_DRIVERS = [ CC254X ]
 
 def openCCDebugger( port, driver=None ):
@@ -53,7 +53,7 @@ def openCCDebugger( port, driver=None ):
 	inst.initialize()
 
 	# Log message
-	print "INFO: Found %s on %s" % ( inst.chipName(), port )
+	print "INFO: Found a %s chip on %s" % ( inst.chipName(), port )
 
 	# Return driver
 	return inst

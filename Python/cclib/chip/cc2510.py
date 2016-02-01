@@ -1,5 +1,7 @@
 #
-# CCLib_proxy Interface Library for High-Level operations
+# CS2510 Chip-Specific code for CCLib
+#
+# Copyright (c) 2015 Simon Schulz - github.com/fishpepper
 # Copyright (c) 2014-2016 Ioannis Charalampidis
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,9 +20,9 @@
 
 from cclib.chip import ChipDriver
 
-class CC254X(ChipDriver):
+class CC2510(ChipDriver):
 	"""
-	Chip-specific code for CC2540/41 SOC
+	Chip-specific code for CC2510 SOC
 	"""
 
 	@staticmethod
@@ -28,15 +30,13 @@ class CC254X(ChipDriver):
 		"""
 		Check if this ChipID can be handled by this class
 		"""
-		# Validate chip
-		return ((self.chipID & 0xff00) == 0x8d00) \
-			or ((self.chipID & 0xff00) == 0x4100)
+		return ((self.chipID & 0xFF00) == 0x8100)
 
 	def chipName(self):
 		"""
 		Return Chip Name
 		"""
-		return "CC2540/41"
+		return "CC251x"
 
 	def initialize(self):
 		"""
@@ -44,31 +44,37 @@ class CC254X(ChipDriver):
 		"""
 
 		# Update the CC.Debugger instruction set that arduino should use with
-		# the chip. The current table (the default) is compatible with most of CC24xx chips
-		if self.instructionTableVersion != 1:
-			self.updateInstructionTable(1, [
+		# the chip, because CC251xx chips use a different one
+		if self.instructionTableVersion != 2:
+			self.updateInstructionTable(2, [
 					0x44, # I_HALT
-					0x48, # I_RESUME
-					0x20, # I_RD_CONFIG
-					0x18, # I_WR_CONFIG
-					0x51, # I_DEBUG_INSTR_1
-					0x52, # I_DEBUG_INSTR_2
-					0x53, # I_DEBUG_INSTR_3
+					0x4C, # I_RESUME
+					0x24, # I_RD_CONFIG
+					0x1D, # I_WR_CONFIG
+					0x55, # I_DEBUG_INSTR_1
+					0x56, # I_DEBUG_INSTR_2
+					0x57, # I_DEBUG_INSTR_3
 					0x68, # I_GET_CHIP_ID
 					0x28, # I_GET_PC
-					0x30, # I_READ_STATUS
-					0x58, # I_STEP_INSTR
-					0x10, # I_CHIP_ERASE
+					0x34, # I_READ_STATUS
+					0x5C, # I_STEP_INSTR
+					0x14, # I_CHIP_ERASE
 				])
 
-		# Get chip info
-		self.chipInfo = self.getChipInfo()
-
+		# Custom chip info for cc2510
+		self.chipInfo = {
+			'flash' : 16,
+			'usb'   : 0,
+			'sram'  : 2
+		}
+		
 		# Populate variables
 		self.flashSize = self.chipInfo['flash'] * 1024
-		self.flashPageSize = 0x800
+		#all cc251x have 0x400 as flash page size
+		self.flashPageSize = 0x400
 		self.sramSize = self.chipInfo['sram'] * 1024
-		self.bulkBlockSize = 0x800
+		self.bulkBlockSize = 0x400 # < This should be the same as the flash page size
+		self.flashWordSize = 2 #cc251x have 2 bytes per word
 
 
 	###############################################
