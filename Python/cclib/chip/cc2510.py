@@ -30,7 +30,7 @@ class CC2510(ChipDriver):
 		"""
 		Check if this ChipID can be handled by this class
 		"""
-		return ((self.chipID & 0xFF00) == 0x8100)
+		return ((chipID & 0xFF00) == 0x8100)
 
 	def chipName(self):
 		"""

@@ -78,18 +78,16 @@ class CCLibProxy:
 				raise IOError("Could not open port %s" % port)
 
 			# Ping
-			if self.ping():
-				print "Using CCDebugger on port %s" % self.ser.name 
-			else:
+			if not self.ping():
 				raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
+
+			# Get instruction table version
+			self.instructionTableVersion = self.getInstructionTableVersion()
 
 			# Get chip info & ID
 			self.chipID = self.getChipID()
 			self.debugStatus = self.getStatus()
 			self.debugConfig = self.readConfig()
-
-			# Get instruction table version
-			self.instructionTableVersion = self.getInstructionTableVersion()
 
 	###############################################
 	# Low-level functions

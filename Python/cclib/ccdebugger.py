@@ -36,6 +36,10 @@ def openCCDebugger( port, driver=None ):
 	# Create a proxy class (this raises IOError on errors)
 	proxy = CCLibProxy(port)
 
+	# Check if no chip is connected
+	if proxy.chipID == 0x0000:
+		raise IOError("No chip found. Check your connection and/or wiring!")
+
 	# Locate the appropriate chip driver to instantiate
 	if driver is None:
 

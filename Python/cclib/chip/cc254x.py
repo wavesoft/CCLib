@@ -30,8 +30,8 @@ class CC254X(ChipDriver):
 		Check if this ChipID can be handled by this class
 		"""
 		# Validate chip
-		return ((self.chipID & 0xff00) == 0x8d00) \
-			or ((self.chipID & 0xff00) == 0x4100)
+		return ((chipID & 0xff00) == 0x8d00) \
+			or ((chipID & 0xff00) == 0x4100)
 
 	def chipName(self):
 		"""
@@ -48,7 +48,7 @@ class CC254X(ChipDriver):
 		# The current table is compatible with most of CC24xx chips
 		if self.instructionTableVersion != 1:
 			self.updateInstructionTable(1, [
-					0x44, # I_HALT
+					0x40, # I_HALT
 					0x48, # I_RESUME
 					0x20, # I_RD_CONFIG
 					0x18, # I_WR_CONFIG

@@ -74,7 +74,7 @@ CCDebugger::CCDebugger( int pinRST, int pinDC, int pinDD_I, int pinDD_O )
 
   // Default CCDebug instruction set for CC254x
   instr[INSTR_VERSION]    = 1;
-  instr[I_HALT]           = 0x44;
+  instr[I_HALT]           = 0x40;
   instr[I_RESUME]         = 0x48;
   instr[I_RD_CONFIG]      = 0x20;
   instr[I_WR_CONFIG]      = 0x18;
