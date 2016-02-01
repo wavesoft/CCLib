@@ -109,7 +109,7 @@ _NOTE:_ If you don't want to use the `--port` parameter with every command you c
 
 ## Compatibility Table
 
-In order to flash a CCxxxx chip there is a need to invoke CPU instructions, which makes the process cpu-dependant. This means that this code cannot be reused off-the-shelf for other CCxxxx chips. The following table lists the chips I or other people have reported to work with this library:
+In order to flash a CCxxxx chip there is a need to invoke CPU instructions, which makes the process cpu-dependant. This means that this code cannot be reused off-the-shelf for other CCxxxx chips. The following table lists the chips reported to work (or could work) with this library:
 
 <table>
     <tr>
