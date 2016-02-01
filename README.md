@@ -4,6 +4,8 @@
 A set of utilities to convert your Arduino board to a CC.Debugger for flashing Texas Instruments' CCxxxx chips.
 It currently supports the CC2540/41 chips ([compatibility table](#compatibility-table)) but with [your help it can support any chip](#contributing-other-chip-drivers) compatible with the CC.Debugger protocol.
 
+Keep in mind but this more than just a set of utilities! It comes with complete, reusable Arduino and Python libraries for adding CC.Debugger support to your projects!
+
 ## Usage
 
 If you are just in hurry to flash your CCxxxx chip, follow this guide, however you should first check the [compatibility table](#compatibility-table) later in this document!
