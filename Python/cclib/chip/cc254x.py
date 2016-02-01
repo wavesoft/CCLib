@@ -44,8 +44,8 @@ class CC254X(ChipDriver):
 		Initialize chip driver
 		"""
 
-		# Update the CC.Debugger instruction set that arduino should use with
-		# the chip. The current table (the default) is compatible with most of CC24xx chips
+		# Make sure the CC.Debugger instruction set that arduino should use is the default.
+		# The current table is compatible with most of CC24xx chips
 		if self.instructionTableVersion != 1:
 			self.updateInstructionTable(1, [
 					0x44, # I_HALT

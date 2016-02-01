@@ -34,8 +34,9 @@ except Exception as e:
 # Get info
 print "\nChip information:"
 print "      Chip ID : 0x%04x" % dbg.chipID
-print "   Flash size : %i Kb" % dbg.chipInfo['flash']
-print "    SRAM size : %i Kb" % dbg.chipInfo['sram']
+print "   Flash size : %i Kb" % (dbg.flashSize / 1024)
+print "    Page size : %i Kb" % (dbg.flashPageSize / 1024)
+print "    SRAM size : %i Kb" % (dbg.sramSize / 1024)
 if dbg.chipInfo['usb']:
 	print "          USB : Yes"
 else:
