@@ -30,16 +30,24 @@
  (C) Copyright 2015, Simon Schulz - github.com/fishpepper
  ///////////////////////////////////////////////////////////////////////////////
  */
+
+////////////////////////////////////////
+////////////////////////////////////////
+
+// Pinout configuration (Configured for Arduino Leonardo)
+int CC_RST   = 2;
+int CC_DC    = 3;
+int CC_DD_I  = 4;
+int CC_DD_O  = 5;
+
+// Change this if you are using an external led
+int LED      = LED_BUILTIN;
+
+////////////////////////////////////////
+////////////////////////////////////////
  
 // Include the CCDebugger
 #include <CCDebugger.h>
-
-// Pinout configuration (Configured for Teensy 2.0++)
-int LED      = 6;
-int CC_RST   = 5;
-int CC_DD_I  = 45;
-int CC_DD_O  = 38;
-int CC_DC    = 17;
 
 // Command constants
 #define   CMD_ENTER     byte(0x01)

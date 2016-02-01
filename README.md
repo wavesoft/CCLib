@@ -30,10 +30,10 @@ For the DC Pin:
  
 For the RST Pin:
  
- <CC_DC> --[ 100k ]-- {RST} --[ 200k ]-- <GND>
+ <CC_RST> --[ 100k ]-- {RST} --[ 200k ]-- <GND>
 ```
 
-Where `{DD}`, `{DC}` and `{RST}` are the pins on the CCxxxx chip.
+Where `{DD}`, `{DC}` and `{RST}` are the pins on the CCxxxx chip and `<CC_DD_O>`, `<CC_DD_I>`, `<CC_DC>`, `<CC_RST>` are the pins in your ardiuno board.
 
 
 ### 2. Prepare your software
