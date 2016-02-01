@@ -201,7 +201,10 @@ Since most of the debug commands are at max 4-bytes long, we are sending from th
     |  Command  |   Data 0  |   Data 1  |   Data 2  |
     +-----------+-----------+-----------+-----------+
 
-The only exception is the brust-write command (CMD_BRUSTWR), where up to 2048 bytes might follow the 4-byte frame.
+The only exceptions are:
+
+  * The brust-write command (CMD_BRUSTWR), where up to 2048 bytes might follow the 4-byte frame, and
+  * The instrunctionset update command (CMD_INSTR_UPD), were 16 bytes must follow the 4-byte frame.
 
 The Teensy/Arduino will always reply with the following 3-byte long frame:
 
@@ -209,7 +212,7 @@ The Teensy/Arduino will always reply with the following 3-byte long frame:
     |   Status  |    ResH   |  Err/ResL |
     +-----------+-----------+-----------+
 
-If the status code is `ANS_OK`, the `ResH:ResL` word contains the resulting word (or byte) of the command. If it's `ANS_ERR`, the `ResL` byte contains the error code.
+If the status code is `ANS_OK(1)`, the `ResH:ResL` word contains the resulting word (or byte) of the command. If it's `ANS_ERR(2)`, the `ResL` byte contains the error code.
 
 
 ## Disclaimer
