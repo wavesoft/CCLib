@@ -4,8 +4,6 @@
 A set of utilities to convert your Arduino board to a CC.Debugger for flashing Texas Instruments' CCxxxx chips.
 It currently supports the CC2540/41 chips ([compatibility table](#compatibility-table)) but with [your help it can support any chip](#contributing-other-chip-drivers) compatible with the CC.Debugger protocol.
 
-**NOTE: We are doing some refactoring on the master branch and it might currently be broken. [The last working commit is the #e070617](https://github.com/wavesoft/CCLib/tree/e07061760eec0531770653b4236b77ef0d58fac0)**
-
 ## Usage
 
 If you are just in hurry to flash your CCxxxx chip, follow this guide, however you should first check the [compatibility table](#compatibility-table) later in this document!

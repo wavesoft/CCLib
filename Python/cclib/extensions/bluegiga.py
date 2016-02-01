@@ -17,7 +17,7 @@
 #
 
 # BLE112/BLE113 use a CC2540 chip
-from cclib.chip.cc2540x import CC254X
+from cclib.chip.cc254x import CC254X
 
 class BlueGigaCCDebugger(CC254X):
 	"""

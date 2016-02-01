@@ -56,8 +56,11 @@ for i in range(0, int(dbg.chipInfo['flash'] / 4)):
 	hexFile.stack(chunk)
 
 	# Log status
-	print "%.0f%%..." % ( ( (i+1)*4 * 100) / dbg.chipInfo['flash'] ),
+	print "\r    Progress %.0f%%..." % ( ( (i+1)*4 * 100) / dbg.chipInfo['flash'] ),
 	sys.stdout.flush()
+
+# Log completion
+print "\r    Progress 100%... OK"
 
 # Save file
 hexFile.save()

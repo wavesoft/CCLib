@@ -17,6 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import sys
+import time
 from cclib.chip import ChipDriver
 
 class CC254X(ChipDriver):
@@ -507,7 +509,7 @@ class CC254X(ChipDriver):
 
 			# Check if we should show progress
 			if showProgress:
-				print "\r    Flashing %0.0f%%... " % (iOfs*100/len(data)),
+				print "\r    Progress %0.0f%%... " % (iOfs*100/len(data)),
 				sys.stdout.flush()
 
 			# Get next page
@@ -592,6 +594,4 @@ class CC254X(ChipDriver):
 			iOfs += iLen
 
 		if showProgress:
-			print "ok"
-
-
+			print "\r    Progress 100%... OK"

@@ -29,7 +29,7 @@ class ChipDriver(CCLibProxy):
 		Construct a new chip driver
 		"""
 		# Initialize proxy subclass
-		CCLibProxy.__init__(self, proxy=proxy)
+		CCLibProxy.__init__(self, parent=proxy)
 
 	@staticmethod
 	def test(cls, chipID):

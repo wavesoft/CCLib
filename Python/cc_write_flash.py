@@ -80,7 +80,10 @@ if maxMem > (dbg.chipInfo['flash'] * 1024):
 	sys.exit(4)
 
 # Confirm
-print "This is going to ERASE and REPROGRAM the chip. Are you sure? <y/N>: ", 
+erasePrompt = "OVERWRITE"
+if opts['erase']:
+	erasePrompt = "ERASE and REPROGRAM"
+print "This is going to %s the chip. Are you sure? <y/N>: " % erasePrompt, 
 ans = sys.stdin.readline()[0:-1]
 if (ans != "y") and (ans != "Y"):
 	print "Aborted"

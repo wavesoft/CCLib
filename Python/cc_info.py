@@ -27,6 +27,7 @@ opts = getOptions("Generic CCDebugger Information Tool")
 try:
 	dbg = openCCDebugger(opts['port'])
 except Exception as e:
+	import traceback; traceback.print_exc();
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
 

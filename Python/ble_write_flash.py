@@ -143,7 +143,10 @@ hexFile.set( dbg.flashSize-25, [ binfo['hwver'] ])
 hexFile.set( dbg.flashSize-22, [ int(binfo['btaddr'][x:x+2],16) for x in range(0,len(binfo['btaddr']),3) ] )
 
 # Confirm
-print "This is going to ERASE and REPROGRAM the chip. Are you sure? <y/N>: ", 
+erasePrompt = "OVERWRITE"
+if opts['erase']:
+	erasePrompt = "ERASE and REPROGRAM"
+print "This is going to %s the chip. Are you sure? <y/N>: " % erasePrompt, 
 ans = sys.stdin.readline()[0:-1]
 if (ans != "y") and (ans != "Y"):
 	print "Aborted"
@@ -175,7 +178,7 @@ print " - Flashing %i memory blocks..." % len(hexFile.memBlocks)
 for mb in hexFile.memBlocks:
 
 	# Flash memory block
-	print " -> 0x%04x : %i bytes " % (mb.addr + offset, mb.size),
+	print " -> 0x%04x : %i bytes " % (mb.addr + offset, mb.size)
 	try:
 		dbg.writeCODE( mb.addr + offset, mb.bytes, verify=True, showProgress=True )
 	except Exception as e:

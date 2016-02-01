@@ -67,7 +67,7 @@ class CCLibProxy:
 			self.chipID = parent.chipID
 			self.debugStatus = parent.debugStatus
 			self.debugConfig = parent.debugConfig
-			self.instructionTableVersion = self.instructionTableVersion
+			self.instructionTableVersion = parent.instructionTableVersion
 
 		else:
 
