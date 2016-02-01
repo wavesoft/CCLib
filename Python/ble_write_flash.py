@@ -23,10 +23,11 @@ import sys
 
 # Get serial port either form environment or from arguments
 opts = getOptions("BlueGiga-Specific CCDebugger Flash Writer Tool", hexIn=True, 
-	license="A 32-byte, hex representation of the license key (64 characters)",
-	addr="A bluetooth mac address in XX:XX:XX:XX:XX:XX format",
-	ver="A decimal number that defines the hardware version",
-	erase="Full chip erase before write")
+	license=":A 32-byte, hex representation of the license key (64 characters)",
+	addr=":A bluetooth mac address in XX:XX:XX:XX:XX:XX format",
+	ver=":A decimal number that defines the hardware version",
+	erase="Full chip erase before write",
+	offset=":Offset the addresses in the .hex file by this value")
 
 # Open debugger
 try:
@@ -34,6 +35,15 @@ try:
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
+
+# Get offset
+offset = 0
+if opts['offset']:
+	if opts['offset'][0:2] == "0x":
+		offset = int(opts['offset'], 16)
+	else:
+		offset = int(opts['offset'])
+	print "NOTE: The memory addresses are offset by %i bytes!" % offset
 
 # Get info
 print "\nChip information:"
@@ -118,7 +128,7 @@ for mb in hexFile.memBlocks:
 		maxMem = memTop
 
 	# Print portion
-	print " 0x%04x   %i B " % (mb.addr, mb.size)
+	print " 0x%04x   %i B " % (mb.addr + offset, mb.size)
 print ""
 
 # Check for oversize data
@@ -164,9 +174,9 @@ print " - Flashing %i memory blocks..." % len(hexFile.memBlocks)
 for mb in hexFile.memBlocks:
 
 	# Flash memory block
-	print " -> 0x%04x : %i bytes " % (mb.addr, mb.size),
+	print " -> 0x%04x : %i bytes " % (mb.addr + offset, mb.size),
 	try:
-		dbg.writeCODE( mb.addr, mb.bytes, verify=True, showProgress=True )
+		dbg.writeCODE( mb.addr + offset, mb.bytes, verify=True, showProgress=True )
 	except Exception as e:
 		print "ERROR: %s" % str(e)
 		sys.exit(3)

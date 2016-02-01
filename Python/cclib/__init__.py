@@ -53,7 +53,7 @@ def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kw
 
 	# Append custom keyword arguments
 	for k,v in kwargs.iteritems():
-		if (v[0] == "="):
+		if (v[0] == ":"):
 			values[k] = None
 			arg_help += " [-%s|--%s=]" % (k[0], k)
 			arguments.append( (k[0]+':', k+'=', v[1:]) )
