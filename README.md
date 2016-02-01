@@ -128,7 +128,7 @@ In order to flash a CCxxxx chip there is a need to invoke CPU instructions, whic
         <td>CC2541</td>
         <td><strong>0x41</strong>..</td>
         <td>CC254X</td>
-        <td>:large_orange_diamond: Partially working</td>
+        <td>:large_orange_diamond: Looking for testers</td>
     </tr>
     <tr>
         <td>CS2510</td>
