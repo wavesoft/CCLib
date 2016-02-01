@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCDebugger, CCHEXFile, getOptions
+from cclib import CCHEXFile, getOptions, openCCDebugger
 import sys
 
 # Get serial port either form environment or from arguments
@@ -25,7 +25,7 @@ opts = getOptions("Generic CCDebugger Flash Writer Tool", hexIn=True, erase="Ful
 
 # Open debugger
 try:
-	dbg = CCDebugger(opts['port'])
+	dbg = openCCDebugger(opts['port'])
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
@@ -94,7 +94,7 @@ print " - Flashing %i memory blocks..." % len(hexFile.memBlocks)
 for mb in hexFile.memBlocks:
 
 	# Flash memory block
-	print " -> 0x%04x : %i bytes " % (mb.addr, mb.size),
+	print " -> 0x%04x : %i bytes " % (mb.addr, mb.size)
 	try:
 		dbg.writeCODE( mb.addr, mb.bytes, verify=True, showProgress=True )
 	except Exception as e:

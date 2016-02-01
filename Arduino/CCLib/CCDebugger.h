@@ -2,6 +2,7 @@
  *
  * CC-Debugger Protocol Library for Arduino
  * Copyright (c) 2014 Ioannis Charalampidis
+ * Copyright (c) 2015 Simon Schulz - github.com/fishpepper
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -87,6 +88,16 @@ public:
    */
   byte getStatus();
 
+   /**
+   * resume program exec
+   */
+  byte resume();
+  
+  /**
+   * halt program exec
+   */
+  byte halt();
+
   /**
    * Step a single instruction
    */
@@ -131,6 +142,16 @@ public:
    */
   byte read();
 
+  /**
+   * Update the debug instruction table
+   */
+  byte updateInstructionTable( byte newTable[16] );
+
+  /**
+   * Get the instruction table version
+   */
+  byte getInstructionTableVersion();
+
 
 private:
 
@@ -142,6 +163,12 @@ private:
    * Switch reset pin
    */
   void setDDDirection( byte direction );
+
+  /**
+   * Software-overridable instruction table that can be used
+   * for supporting other CCDebug-Compatible chips purely by software
+   */
+  byte      instr[16];
 
   /**
    * Local properties

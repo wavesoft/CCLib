@@ -27,6 +27,7 @@
 
  ///////////////////////////////////////////////////////////////////////////////
  (C) Copyright 2014, Ioannis Charalampidis - Licensed under GNU/GPLv3 License.
+ (C) Copyright 2015, Simon Schulz - github.com/fishpepper
  ///////////////////////////////////////////////////////////////////////////////
  */
  
@@ -41,20 +42,24 @@ int CC_DD_O  = 38;
 int CC_DC    = 17;
 
 // Command constants
-#define   CMD_ENTER    byte(0x01)
-#define   CMD_EXIT     byte(0x02)
-#define   CMD_CHIP_ID  byte(0x03)
-#define   CMD_STATUS   byte(0x04)
-#define   CMD_PC       byte(0x05)
-#define   CMD_STEP     byte(0x06)
-#define   CMD_EXEC_1   byte(0x07)
-#define   CMD_EXEC_2   byte(0x08)
-#define   CMD_EXEC_3   byte(0x09)
-#define   CMD_BRUSTWR  byte(0x0A)
-#define   CMD_RD_CFG   byte(0x0B)
-#define   CMD_WR_CFG   byte(0x0C)
-#define   CMD_CHPERASE byte(0x0D)
-#define   CMD_PING     byte(0xF0)
+#define   CMD_ENTER     byte(0x01)
+#define   CMD_EXIT      byte(0x02)
+#define   CMD_CHIP_ID   byte(0x03)
+#define   CMD_STATUS    byte(0x04)
+#define   CMD_PC        byte(0x05)
+#define   CMD_STEP      byte(0x06)
+#define   CMD_EXEC_1    byte(0x07)
+#define   CMD_EXEC_2    byte(0x08)
+#define   CMD_EXEC_3    byte(0x09)
+#define   CMD_BRUSTWR   byte(0x0A)
+#define   CMD_RD_CFG    byte(0x0B)
+#define   CMD_WR_CFG    byte(0x0C)
+#define   CMD_CHPERASE  byte(0x0D)
+#define   CMD_RESUME    byte(0x0E)
+#define   CMD_HALT      byte(0x0F)
+#define   CMD_PING      byte(0xF0)
+#define   CMD_INSTR_VER byte(0xF1)
+#define   CMD_INSTR_UPD byte(0xF2)
 
 // Response constants
 #define   ANS_OK       byte(0x01)
@@ -160,8 +165,8 @@ void loop() {
     if (handleError()) return;
     sendFrame( ANS_OK, bAns );
 
-  } else if (inByte == CMD_STEP) {
-    bAns = dbg->step();
+  } else if (inByte == CMD_HALT) {
+    bAns = dbg->halt();
     if (handleError()) return;
     sendFrame( ANS_OK, bAns );
 
@@ -264,6 +269,40 @@ void loop() {
 
   } else if (inByte == CMD_CHPERASE) {
     bAns = dbg->chipErase();
+    if (handleError()) return;
+    sendFrame( ANS_OK, bAns );
+
+  } else if (inByte == CMD_STEP) {
+    bAns = dbg->step();
+    if (handleError()) return;
+    sendFrame( ANS_OK, bAns );
+ 
+  } else if (inByte == CMD_RESUME) {
+    bAns = dbg->resume();
+    if (handleError()) return;
+    sendFrame( ANS_OK, bAns );
+
+  } else if (inByte == CMD_INSTR_VER) {
+    bAns = db->getInstructionTableVersion();
+    if (handleError()) return;
+    sendFrame( ANS_OK, bAns );
+
+  } else if (inByte == CMD_INSTR_UPD) {
+
+    // Acknowledge transfer
+    sendFrame( ANS_READY );
+
+    // Read 16 bytes from the input
+    byte instrBuffer[16];
+    iRead = 0;
+    while (iRead < 16) {
+      if (Serial.available() >= 1) {
+        instrBuffer[iRead++] = Serial.read();
+      }
+    }
+
+    // Update instruction buffer
+    bAns = db->updateInstructionTable( instrBuffer );
     if (handleError()) return;
     sendFrame( ANS_OK, bAns );
 

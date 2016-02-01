@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCDebugger, CCHEXFile, getOptions
+from cclib import CCHEXFile, getOptions, openCCDebugger
 import sys
 
 # Get serial port either form environment or from arguments
@@ -25,7 +25,7 @@ opts = getOptions("Generic CCDebugger Flash Reader Tool", hexOut=True)
 
 # Open debugger
 try:
-	dbg = CCDebugger(opts['port'])
+	dbg = openCCDebugger(opts['port'])
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)

@@ -1,6 +1,6 @@
 #
 # CCLib_proxy Interface Library for High-Level operations
-# Copyright (c) 2014 Ioannis Charalampidis
+# Copyright (c) 2014-2016 Ioannis Charalampidis
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,9 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib.ccdebugger import CCDebugger
+# BLE112/BLE113 use a CC2540 chip
+from cclib.chip.cc2540x import CC254X
 
-class BlueGigaCCDebugger(CCDebugger):
+class BlueGigaCCDebugger(CC254X):
 	"""
 	BlueGiga-Specific extensions to the CCDebugger
 	"""

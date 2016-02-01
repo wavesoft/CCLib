@@ -1,45 +1,140 @@
-CCLib
-=====
+
+# CCLib
 
 An arduino and a python library that implements a CC.Debugger for Texas Instruments' CCxxxx chips. 
-The python library targets specifically the CC2540 SoC which is used by BlueGiga's BLE112 & BLE113 modules.
-The arduino library on the other hand is just a low-level debug protocol implementation that can be used 
-with any CCxxxx chip.
+The python library targets specifically the CC2540 SoC which is used by BlueGiga's BLE112 & BLE113 modules,
+but it might also support other versions too.
 
-Wiring
-------
+**NOTE: We are doing some refactoring on the master branch and it might currently be broken. [The last working commit is the #e070617](https://github.com/wavesoft/CCLib/tree/e07061760eec0531770653b4236b77ef0d58fac0)**
 
-The arduino library is tailored for 5V Teensy/Arduino chips, and therefore provide two separate DD pins, for use with voltage dividers (since the BLE112/3 chips operate on 3.3V).
+## Usage
 
-Start with the **CCLib_proxy** example from CCLib and change the pin configuration in order to match your setup. For your reference, here is the wiring diagram with voltage dividers.
+If you are just in hurry to flash your CCxxxx chip, follow this guide, however you should first check the compatibility table later in this document!
 
-    For the DD Pin:
-    
-     <CC_DD_O> --[ 100k ]-- <CC_DD_I> --[ 200k ]-- <GND>
-                                |
-                               {DD}
-     
-    For the DC Pin:
-    
-     <CC_DC> --[ 100k ]-- {DC} --[ 200k ]-- <GND>
-     
-    For the RST Pin:
-     
-     <CC_DC> --[ 100k ]-- {RST} --[ 200k ]-- <GND>
+### 1. Prepare your arduino board
 
-Where {DD},{DC} and {RST} are the pins on the CCxxxx chip.
-
-Usage
------
-
-1. Open the CCLib_proxy example.
-2. Change the `LED`, `CC_RST`, `CC_DC`, `CC_DD_I` and `CC_DD_O` constants to match your configuration.
+1. Install the `Arduino/CCLib` library [to your arduino IDE](https://www.arduino.cc/en/Guide/Libraries)
+2. Load the `CCLib_proxy` example and change the the `LED`, `CC_RST`, `CC_DC`, `CC_DD_I` and `CC_DD_O` constants to match your configuration.
 3. Flash it to your Teensy/Arduino
-4. Connect it to your CCxxxx chip
-5. Use the python scripts from the Python/ directory to read/flash your chip.
+4. Wire your arduino to your CCxxxx chip, according to the following diagram:
 
-Protocol
---------
+```
+For the DD Pin:
+
+ <CC_DD_O> --[ 100k ]-- <CC_DD_I> --[ 200k ]-- <GND>
+                            |
+                           {DD}
+ 
+For the DC Pin:
+
+ <CC_DC> --[ 100k ]-- {DC} --[ 200k ]-- <GND>
+ 
+For the RST Pin:
+ 
+ <CC_DC> --[ 100k ]-- {RST} --[ 200k ]-- <GND>
+```
+
+Where `{DD}`, `{DC}` and `{RST}` are the pins on the CCxxxx chip.
+
+
+### 2. Prepare your software
+
+1. You will need Python 2.7 or later installed to your system
+2. Open a terminal and change directory into the `Python` folder of this project
+3. Install required python modules by typing: `pip install -r requirements.txt`
+4. Test your set-up:
+```
+~$ ./cc_info.py -p [serial port]
+```
+
+If you see something like this, you are ready:
+
+```
+Chip information:
+      Chip ID : 0x4113
+   Flash size : 16 Kb
+    SRAM size : 1 Kb
+          USB : No
+
+Device information:
+ IEEE Address : 13fe41b61cde
+           PC : 002f
+```
+
+However, if you see something like this, something is wrong and you should probably check your wiring and/or reset the arduino board or the CC board.
+
+```
+Chip information:
+      Chip ID : 0x4113
+   Flash size : 16 Kb
+    SRAM size : 1 Kb
+          USB : No
+
+Device information:
+ IEEE Address : 000000000000
+           PC : 0000
+```
+
+### 3. Using the software
+
+The python utilities provide a straightforward interface for reading/writing to your CCxxxx chip:
+
+* __cc_info.py__ : Read generic information from your CCxxxx chip. Usage exampe:
+```
+~$ ./cc_info.py -p /dev/ttyS0
+```
+
+* __cc_read_flash.py__ : Read the flash memory and write it to a hex/bin file. Usage example:
+```
+~$ ./cc_read_flash.py -p /dev/ttyS0 --out=output.hex
+```
+
+* __cc_write_flash.py__ : Write a hex/bin file to the flash memory. You can optionally specify the `--erase` parameter to firt perform a full chip-erase. Usage example:
+```
+~$ ./cc_write_flash.py -p /dev/ttyS0 --in=output.hex --erase
+```
+
+* __cc_resume.py__ : Exit from debug mode and resume chip operations. Usage example:
+```
+~$ ./cc_resume.py -p /dev/ttyS0
+```
+
+_NOTE:_ If you don't want to use the `--port` parameter with every command you can define the `CC_SERIAL` environment variable, pointing to the serial port you are using:
+
+```
+~$ export CC_SERIAL=/dev/ttyS0
+```
+
+## Compatibility Table
+
+In order to flash a CCxxxx chip there is a need to invoke CPU instructions, which makes the process cpu-dependant. This means that this code cannot be reused off-the-shelf for other CCxxxx chips. The following table lists the chips I or other people have reported to work with this library:
+
+<table>
+    <tr>
+        <th>Chip</th>
+        <th>Chip ID</th>
+        <th>Driver</th>
+        <th>Status</th>
+    </tr>
+    <tr>
+        <td>CC2540</td>
+        <td>0x8d??</td>
+        <td>CC254X</td>
+        <td>Works</td>
+    </tr>
+    <tr>
+        <td>CC2541</td>
+        <td>0x41??</td>
+        <td>CC254X</td>
+        <td>Partially works</td>
+    </tr>
+</table>
+
+### Contributing other chip drivers
+
+
+
+## Protocol
 
 The protocol used between your computer and your Arduino is quite simple and not really fault-proof. This was intended as a pure proxy mechanism in order to experiment with the CC Debugging protocol from the computer. Therefore, if you interrupt any operation in the middle, you will most probably have to unplug and re-plug your Teensy/Arduino. That said, here is the protocol:
 
@@ -60,13 +155,12 @@ The Teensy/Arduino will always reply with the following 3-byte long frame:
 If the status code is `ANS_OK`, the `ResH:ResL` word contains the resulting word (or byte) of the command. If it's `ANS_ERR`, the `ResL` byte contains the error code.
 
 
-Disclaimer
-----------
+## Disclaimer
 
 I have successfully managed to flash various BLE112 modules using the scripts provided with this project, however I DO NOT GURANTEE THAT THIS WILL WORK IN YOUR CASE. **YOU ARE USING THIS CODE SOLELY AT YOUR OWN RISK!**
 
-License
--------
+
+## License
 
 Copyright (c) 2014 Ioannis Charalampidis
 

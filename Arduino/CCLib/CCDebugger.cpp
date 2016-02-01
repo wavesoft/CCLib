@@ -1,7 +1,8 @@
 /**
  *
  * CC-Debugger Protocol Library for Arduino
- * Copyright (c) 2014 Ioannis Charalampidis
+ * Copyright (c) 2014-2016 Ioannis Charalampidis
+ * Copyright (c) 2015 Simon Schulz - github.com/fishpepper
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +19,23 @@
  */
 
 #include <CCDebugger.h>
+
+/**
+ * Instruction table indices
+ */
+#define INSTR_VERSION   0
+#define I_HALT          1
+#define I_RESUME        2
+#define I_RD_CONFIG     3
+#define I_WR_CONFIG     4
+#define I_DEBUG_INSTR_1 5
+#define I_DEBUG_INSTR_2 6
+#define I_DEBUG_INSTR_3 7
+#define I_GET_CHIP_ID   8
+#define I_GET_IC        9
+#define I_READ_STATUS   10
+#define I_STEP_INSTR    11
+#define I_CHIP_ERASE    12
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
@@ -53,6 +71,21 @@ CCDebugger::CCDebugger( int pinRST, int pinDC, int pinDD_I, int pinDD_O )
 
   // Prepare default direction
   setDDDirection(INPUT);
+
+  // Default CCDebug instruction set for CC254x
+  instr[INSTR_VERSION]    = 1;
+  instr[I_HALT]           = 0x44;
+  instr[I_RESUME]         = 0x48;
+  instr[I_RD_CONFIG]      = 0x20;
+  instr[I_WR_CONFIG]      = 0x18;
+  instr[I_DEBUG_INSTR_1]  = 0x51;
+  instr[I_DEBUG_INSTR_2]  = 0x52;
+  instr[I_DEBUG_INSTR_3]  = 0x53;
+  instr[I_GET_CHIP_ID]    = 0x68;
+  instr[I_GET_PC]         = 0x28;
+  instr[I_READ_STATUS]    = 0x30;
+  instr[I_STEP_INSTR]     = 0x58;
+  instr[I_CHIP_ERASE]     = 0x10;
 
   // We are active by default
   active = true;
@@ -398,7 +431,7 @@ byte CCDebugger::exit()
 
   byte bAns;
 
-  write( 0x48 ); // RESUME
+  write( instr[I_RESUME] ); // RESUME
   switchRead();
   bAns = read(); // debug status
   switchWrite(); 
@@ -422,7 +455,7 @@ byte CCDebugger::getConfig() {
 
   byte bAns;
 
-  write( 0x20 ); // RD_CONFIG
+  write( instr[I_RD_CONFIG] ); // RD_CONFIG
   switchRead();
   bAns = read(); // Config
   switchWrite(); 
@@ -445,7 +478,7 @@ byte CCDebugger::setConfig( byte config ) {
 
   byte bAns;
 
-  write( 0x18 ); // WR_CONFIG
+  write( instr[I_WR_CONFIG] ); // WR_CONFIG
   write( config );
   switchRead();
   bAns = read(); // Config
@@ -470,7 +503,7 @@ byte CCDebugger::exec( byte oc0 )
 
   byte bAns;
 
-  write( 0x51 ); // DEBUG_INSTR + 1b
+  write( instr[I_DEBUG_INSTR_1] ); // DEBUG_INSTR + 1b
   write( oc0 );
   switchRead();
   bAns = read(); // Accumulator
@@ -495,7 +528,7 @@ byte CCDebugger::exec( byte oc0, byte oc1 )
 
   byte bAns;
 
-  write( 0x52 ); // DEBUG_INSTR + 2b
+  write( instr[I_DEBUG_INSTR_2] ); // DEBUG_INSTR + 2b
   write( oc0 );
   write( oc1 );
   switchRead();
@@ -521,7 +554,7 @@ byte CCDebugger::exec( byte oc0, byte oc1, byte oc2 )
 
   byte bAns;
 
-  write( 0x53 ); // DEBUG_INSTR + 3b
+  write( instr[I_DEBUG_INSTR_3] ); // DEBUG_INSTR + 3b
   write( oc0 );
   write( oc1 );
   write( oc2 );
@@ -548,7 +581,7 @@ byte CCDebugger::execi( byte oc0, unsigned short c0 )
 
   byte bAns;
 
-  write( 0x53 ); // DEBUG_INSTR + 3b
+  write( instr[I_DEBUG_INSTR_3] ); // DEBUG_INSTR + 3b
   write( oc0 );
   write( (c0 >> 8) & 0xFF );
   write(  c0 & 0xFF );
@@ -575,7 +608,7 @@ unsigned short CCDebugger::getChipID() {
   unsigned short bAns;
   byte bRes;
 
-  write( 0x68 ); // GET_CHIP_ID
+  write( instr[I_GET_CHIP_ID] ); // GET_CHIP_ID
   switchRead();
   bRes = read(); // High order
   bAns = bRes << 8;
@@ -602,7 +635,7 @@ unsigned short CCDebugger::getPC() {
   unsigned short bAns;
   byte bRes;
 
-  write( 0x28 ); // GET_PC
+  write( instr[I_GET_PC] ); // GET_PC
   switchRead();
   bRes = read(); // High order
   bAns = bRes << 8;
@@ -628,7 +661,7 @@ byte CCDebugger::getStatus() {
 
   byte bAns;
 
-  write( 0x30 ); // READ_STATUS
+  write( instr[I_READ_STATUS] ); // READ_STATUS
   switchRead();
   bAns = read(); // debug status
   switchWrite(); 
@@ -651,12 +684,57 @@ byte CCDebugger::step() {
 
   byte bAns;
 
-  write( 0x58 ); // STEP_INSTR
+  write( instr[I_STEP_INSTR] ); // STEP_INSTR
   switchRead();
   bAns = read(); // Accumulator
   switchWrite(); 
 
   return bAns;
+}
+
+/**
+ * resume instruction
+ */
+byte CCDebugger::resume() {
+  if (!active) {
+    errorFlag = 1;
+    return 0;
+  }
+  if (!inDebugMode) {
+    errorFlag = 2;
+    return 0;
+  }
+
+  byte bAns;
+
+  write( instr[I_RESUME] ); //RESUME
+  switchRead();
+  bAns = read(); // Accumulator
+  switchWrite(); 
+
+  return bAns;
+}
+
+/**
+ * halt instruction
+ */
+byte CCDebugger::halt() {
+  if (!active) {
+    errorFlag = 1;
+    return 0;
+  }
+  if (!inDebugMode) {
+    errorFlag = 2;
+    return 0;
+  }
+
+  byte bAns;
+
+  write( instr[I_HALT] ); //HALT
+  switchRead();
+  bAns = read(); // Accumulator
+  switchWrite();
+
 }
 
 /**
@@ -675,10 +753,31 @@ byte CCDebugger::chipErase()
 
   byte bAns;
 
-  write( 0x10 ); // CHIP_ERASE
+  write( instr[I_CHIP_ERASE] ); // CHIP_ERASE
   switchRead();
   bAns = read(); // Debug status
   switchWrite(); 
 
   return bAns;
-};
+}
+
+/**
+ * Update the debug instruction table
+ */
+byte updateInstructionTable( byte newTable[16] )
+{
+  // Copy table entries
+  for (byte i=0; i<16; i++)
+    instr[i] = newTable[i];
+  // Return the new version
+  return instr[INSTR_VERSION];
+}
+
+/**
+ * Get the instruction table version
+ */
+byte getInstructionTableVersion()
+{
+  // Return version of instruction table
+  return instr[INSTR_VERSION];
+}

@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cclib import CCHEXFile, getOptions
+from cclib import CCHEXFile, getOptions, openCCDebugger
 from cclib.extensions.bluegiga import BlueGigaCCDebugger
 import sys
 
@@ -30,7 +30,7 @@ opts = getOptions("BlueGiga-Specific CCDebugger Flash Writer Tool", hexIn=True,
 
 # Open debugger
 try:
-	dbg = BlueGigaCCDebugger(opts['port'])
+	dbg = openCCDebugger(opts['port'], driver=BlueGigaCCDebugger)
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
