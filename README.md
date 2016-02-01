@@ -119,19 +119,19 @@ In order to flash a CCxxxx chip there is a need to invoke CPU instructions, whic
         <td>CC2540</td>
         <td><strong>0x8d</strong>..</td>
         <td>CC254X</td>
-        <td>Works</td>
+        <td>:white_check_mark: Works</td>
     </tr>
     <tr>
         <td>CC2541</td>
         <td><strong>0x41</strong>..</td>
         <td>CC254X</td>
-        <td>Partially working</td>
+        <td>:large_orange_diamond: Partially working</td>
     </tr>
     <tr>
         <td>CS2510</td>
         <td><strong>0x81</strong>..</td>
         <td>CS2510</td>
-        <td>Work in progress</td>
+        <td>:red_circle: Work in progress</td>
     </tr>
 </table>
 
@@ -221,7 +221,7 @@ I have successfully managed to flash various BLE112 modules using the scripts pr
 
 ## License
 
-Copyright (c) 2014 Ioannis Charalampidis
+Copyright (c) 2014-2016 Ioannis Charalampidis
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
