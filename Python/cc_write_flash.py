@@ -21,7 +21,7 @@ from cclib import CCDebugger, CCHEXFile, getOptions
 import sys
 
 # Get serial port either form environment or from arguments
-opts = getOptions("Generic CCDebugger Flash Writer Tool", hexIn=True)
+opts = getOptions("Generic CCDebugger Flash Writer Tool", hexIn=True, erase="Full chip erase before write")
 
 # Open debugger
 try:
@@ -80,12 +80,13 @@ if (ans != "y") and (ans != "Y"):
 print "\nFlashing:"
 
 # Send chip erase
-print " - Chip erase..."
-try:
-	dbg.chipErase()
-except Exception as e:
- 	print "ERROR: %s" % str(e)
- 	sys.exit(3)
+if opts['erase']:
+	print " - Chip erase..."
+	try:
+		dbg.chipErase()
+	except Exception as e:
+	 	print "ERROR: %s" % str(e)
+	 	sys.exit(3)
 
 # Flash memory
 dbg.pauseDMA(False)
