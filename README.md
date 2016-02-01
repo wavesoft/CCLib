@@ -1,9 +1,8 @@
 
 # CCLib
 
-An arduino and a python library that implements a CC.Debugger for Texas Instruments' CCxxxx chips. 
-The python library targets specifically the CC2540 SoC which is used by BlueGiga's BLE112 & BLE113 modules,
-but it might also support other versions too.
+A set of utilities to convert your Arduino board to a CC.Debugger for flashing Texas Instruments' CCxxxx chips.
+It currently supports the CC2540/41 chips ([compatibility table](#compatibility-table)) but with [your help it can support any chip](#contributing-other-chip-drivers) compatible with the CC.Debugger protocol.
 
 **NOTE: We are doing some refactoring on the master branch and it might currently be broken. [The last working commit is the #e070617](https://github.com/wavesoft/CCLib/tree/e07061760eec0531770653b4236b77ef0d58fac0)**
 
