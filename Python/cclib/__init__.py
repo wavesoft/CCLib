@@ -52,6 +52,10 @@ def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kw
 		arguments.append( ('p:', 'port=', 'Specify the serial port to use (defaults to CC_SERIAL variable)' ) )
 		required.append('port')
 
+	# New line
+	if len(kwargs) > 0:
+		arg_help += "\n" + (" " * (7 + len(sys.argv[0])))
+
 	# Append custom keyword arguments
 	for k,v in kwargs.iteritems():
 		if (v[0] == ":"):
