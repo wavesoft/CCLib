@@ -39,6 +39,8 @@ def openCCDebugger( port, driver=None ):
 	# Check if no chip is connected
 	if proxy.chipID == 0x0000:
 		raise IOError("No chip found. Check your connection and/or wiring!")
+	if proxy.chipID == 0xffff:
+		raise IOError("Short-circuit or wrong wiring detected. Check your connection and/or wiring!")
 
 	# Locate the appropriate chip driver to instantiate
 	if driver is None:
