@@ -27,14 +27,14 @@ from cclib.chip.cc254x import CC254X
 from cclib.chip.cc2510 import CC2510
 CHIP_DRIVERS = [ CC254X, CC2510 ]
 
-def openCCDebugger( port, driver=None ):
+def openCCDebugger( port, driver=None, enterDebug=False ):
 	"""
 	Factory function that instantiates the appropriate chip and/or extension
 	classes according to the information obtained from the serial port
 	"""
 
 	# Create a proxy class (this raises IOError on errors)
-	proxy = CCLibProxy(port)
+	proxy = CCLibProxy( port, enterDebug=enterDebug )
 
 	# Check if no chip is connected
 	if proxy.chipID == 0x0000:
@@ -61,6 +61,17 @@ def openCCDebugger( port, driver=None ):
 
 	# Log message
 	print "INFO: Found a %s chip on %s" % ( inst.chipName(), port )
+
+	# Get info
+	print "\nChip information:"
+	print "      Chip ID : 0x%04x" % inst.chipID
+	print "   Flash size : %i Kb" % (inst.flashSize / 1024)
+	print "    Page size : %i Kb" % (inst.flashPageSize / 1024)
+	print "    SRAM size : %i Kb" % (inst.sramSize / 1024)
+	if inst.chipInfo['usb']:
+		print "          USB : Yes"
+	else:
+		print "          USB : No"
 
 	# Return driver
 	return inst

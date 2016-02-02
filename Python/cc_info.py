@@ -25,21 +25,10 @@ opts = getOptions("Generic CCDebugger Information Tool")
 
 # Open debugger
 try:
-	dbg = openCCDebugger(opts['port'])
+	dbg = openCCDebugger(opts['port'], enterDebug=opts['enter'])
 except Exception as e:
 	print "ERROR: %s" % str(e)
 	sys.exit(1)
-
-# Get info
-print "\nChip information:"
-print "      Chip ID : 0x%04x" % dbg.chipID
-print "   Flash size : %i Kb" % (dbg.flashSize / 1024)
-print "    Page size : %i Kb" % (dbg.flashPageSize / 1024)
-print "    SRAM size : %i Kb" % (dbg.sramSize / 1024)
-if dbg.chipInfo['usb']:
-	print "          USB : Yes"
-else:
-	print "          USB : No"
 
 # Get device information from the read-only section
 print "\nDevice information:"

@@ -28,11 +28,12 @@ def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kw
 	import sys
 	import os
 
-	values = {}
+	values = { 'enter': False }
 	required = []
 	arguments = []
 	arguments.append( ('h', 'help', 'Display this help screen' ) )
-	arg_help = "[-h|--help]"
+	arguments.append( ('E', 'enter', 'Enter debug mode if not debugging already' ) )
+	arg_help = "[-h|--help] [-E|--enter]"
 
 	# Append some other options
 	if hexIn:

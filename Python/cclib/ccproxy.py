@@ -54,7 +54,7 @@ class CCLibProxy:
 	performance issues, a binary serial protocol was used.
 	"""
 
-	def __init__(self, port=None, parent=None):
+	def __init__(self, port=None, parent=None, enterDebug=False):
 		"""
 		Initialize the CCLibProxy class 
 		"""
@@ -80,6 +80,10 @@ class CCLibProxy:
 			# Ping
 			if not self.ping():
 				raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
+
+			# Check if we should enter debug mode
+			if enterDebug:
+				self.enter()
 
 			# Get instruction table version
 			self.instructionTableVersion = self.getInstructionTableVersion()
@@ -115,7 +119,10 @@ class CCLibProxy:
 		# Handle error responses
 		if status == ANS_ERROR:
 			if raiseException:
-				raise IOError("CCDebugger responded with an error (0x%02x)" % bL)
+				if bL == 0x02:
+					raise IOError("The chip is not in debug mode! Use the '-E' option (--help for more)")
+				else:
+					raise IOError("CCDebugger responded with an error (0x%02x)" % bL)
 			else:
 				return -bL
 
