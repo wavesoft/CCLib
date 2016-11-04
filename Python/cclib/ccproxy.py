@@ -78,7 +78,9 @@ class CCLibProxy:
 				raise IOError("Could not open port %s" % port)
 
 			# Ping
-			if not self.ping():
+			try:
+				self.ping()
+			except IOError:
 				raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
 
 			# Check if we should enter debug mode
