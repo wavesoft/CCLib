@@ -357,6 +357,7 @@ class CCHEXFile:
 					else:
 						self.memBlocks.append(mb)
 						mb = CCMemBlock(bAddr)
+						mb.stack(bytearray(bytes))
 
 					#print "0x%06x : " % bAddr, "".join( "%02x " % x for x in bytes )
 
