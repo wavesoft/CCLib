@@ -2,6 +2,7 @@
 # CC2540/41 Chip-Specific code for CCLib
 #
 # Copyright (c) 2014-2016 Ioannis Charalampidis
+# Copyright (c) 2016 Sjoerd Langkemper
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,9 +22,29 @@ import sys
 import time
 from cclib.chip import ChipDriver
 
+
+# From the SWRU191F user guide, section 3.6, CHIPID register
+chipIDs = {
+    0xA5: 'CC2530',
+    0xB5: 'CC2531',
+    0x95: 'CC2533',
+    0x8D: 'CC2540',
+    0x41: 'CC2541',
+}
+
+
+def getChipName(chipID):
+	"""
+	Determine the name of the chip from the first byte of the chipID.
+	Raises a KeyError if the chip is not supported by this driver.
+	"""
+	shortID = (chipID & 0xff00) >> 8
+	return chipIDs[shortID]
+
+
 class CC254X(ChipDriver):
 	"""
-	Chip-specific code for CC2540/41 SOC
+	Chip-specific code for CC253X and CC2540/41 SOC
 	"""
 
 	@staticmethod
@@ -31,15 +52,17 @@ class CC254X(ChipDriver):
 		"""
 		Check if this ChipID can be handled by this class
 		"""
-		# Validate chip
-		return ((chipID & 0xff00) == 0x8d00) \
-			or ((chipID & 0xff00) == 0x4100)
+		try:
+			getChipName(chipID)
+			return True
+		except KeyError:
+			return False
 
 	def chipName(self):
 		"""
 		Return Chip Name
 		"""
-		return "CC2540/41"
+		return getChipName(self.chipID)
 
 	def initialize(self):
 		"""
