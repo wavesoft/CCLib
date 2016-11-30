@@ -285,8 +285,7 @@ class CCLibProxy:
 			raise IOError("Unable to prepare for brust-write! (Unknown response 0x%02x)" % ans)
 
 		# Start sending data
-		for b in data:
-			self.ser.write(chr(b & 0xFF))
+		self.ser.write(data)
 		self.ser.flush()
 
 		# Handle response & update debug status

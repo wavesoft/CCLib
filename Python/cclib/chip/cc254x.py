@@ -524,7 +524,6 @@ class CC254X(ChipDriver):
 		self.clearDMAIRQ(1)
 		self.disarmDMAChannel(0)
 		self.disarmDMAChannel(1)
-		flashRetries = 0
 
 		# Split in 2048-byte chunks
 		iOfs = 0
@@ -603,17 +602,8 @@ class CC254X(ChipDriver):
 			# Check if we should verify
 			if verify:
 				verifyBytes = self.readCODE(fAddr, iLen)
-				for i in range(0, iLen):
-					if verifyBytes[i] != data[iOfs+i]:
-						if flashRetries < 3:
-							print "\n[Flash Error at @0x%04x, will retry]" % (fAddr+i)
-							flashRetries += 1
-							continue
-						else:
-							raise IOError("Flash verification error on offset 0x%04x" % (fAddr+i))
-			flashRetries = 0
-
-			# Forward to next page
+				if verifyBytes != data[iOfs:iOfs+iLen]:
+					raise IOError("Flash verification error on offset 0x%04x" % fAddr)
 			iOfs += iLen
 
 		if showProgress:
