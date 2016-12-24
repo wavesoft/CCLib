@@ -11,7 +11,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -28,7 +28,7 @@ def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kw
 	import sys
 	import os
 
-	values = { 'enter': False }
+	values = { 'enter': False, 'port': None }
 	required = []
 	arguments = []
 	arguments.append( ('h', 'help', 'Display this help screen' ) )
@@ -49,8 +49,7 @@ def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kw
 	if port:
 		values['port'] = os.environ.get("CC_SERIAL", None)
 		arg_help += " [-p|--port=<serial>]"
-		arguments.append( ('p:', 'port=', 'Specify the serial port to use (defaults to CC_SERIAL variable)' ) )
-		required.append('port')
+		arguments.append( ('p:', 'port=', 'Specify the serial port to use (autodetect if missing)' ) )
 
 	# New line
 	if len(kwargs) > 0:
@@ -70,10 +69,10 @@ def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kw
 	# Parse options
 	try:
 		opts, args = getopt.getopt(
-			sys.argv[1:], "".join([v[0] for v in arguments]), 
+			sys.argv[1:], "".join([v[0] for v in arguments]),
 			[v[1] for v in arguments] )
 	except getopt.GetoptError as err:
-		print("ERROR: %s" % str(err)) 
+		print("ERROR: %s" % str(err))
 		print(shortDesc)
 		print("Usage: %s %s %s" % (sys.argv[0], arg_help, argHelp))
 		print("")
@@ -123,10 +122,6 @@ def getOptions(shortDesc, argHelp="", hexIn=False, hexOut=False, port=True, **kw
 				sys.exit(1)
 
 	# Validate input
-	if port and not values['port']:
-		print(shortDesc)
-		print("ERROR: Please specify a serial port either with the CC_SERIAL environment variable or with the --port argument!")
-		sys.exit(1)
 	for k in required:
 		if not values[k]:
 			print(shortDesc)

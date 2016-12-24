@@ -16,7 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
+import glob
 import serial
+import serial.tools.list_ports
+import sys
 import time
 
 # Command constants
@@ -71,17 +74,25 @@ class CCLibProxy:
 
 		else:
 
-			# Open port
-			try:
-				self.ser = serial.Serial(port, timeout=1)
-			except:
-				raise IOError("Could not open port %s" % port)
+			# If we don't have a port specified perform autodetect
+			if port is None:
+				self.detectPort()
 
-			# Ping
-			try:
-				self.ping()
-			except IOError:
-				raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
+			else:
+				# Open port
+				try:
+					self.ser = serial.Serial(port, timeout=1)
+				except:
+					raise IOError("Could not open port %s" % port)
+
+				# Ping
+				try:
+					self.ping()
+				except IOError:
+					raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
+
+			# Initialize chip info
+			self.readChipInfo(enterDebug)
 
 			# Check if we should enter debug mode
 			if enterDebug:
@@ -94,6 +105,29 @@ class CCLibProxy:
 			self.chipID = self.getChipID()
 			self.debugStatus = self.getStatus()
 			self.debugConfig = self.readConfig()
+
+	def detectPort(self):
+		"""
+		Iterate over system COM ports in order to locate a port that the proxy
+		responds upon.
+		"""
+		for port in serial.tools.list_ports.comports():
+			try:
+				self.ser = serial.Serial(port.device, timeout=1)
+
+				# If ping fails, we will get an exception
+				self.sendFrame(CMD_PING)
+				return
+
+			except:
+				try:
+					self.ser.close()
+				except:
+					pass
+				self.ser = None
+
+		# No port defined? Raise an exception
+		raise IOError("Could not detect a CCLib_proxy connected on any serial port")
 
 	###############################################
 	# Low-level functions
