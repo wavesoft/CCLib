@@ -67,6 +67,7 @@ class CCLibProxy:
 
 			# Subclass all properties
 			self.ser = parent.ser
+			self.port = parent.port
 			self.chipID = parent.chipID
 			self.debugStatus = parent.debugStatus
 			self.debugConfig = parent.debugConfig
@@ -82,6 +83,7 @@ class CCLibProxy:
 				# Open port
 				try:
 					self.ser = serial.Serial(port, timeout=1)
+					self.port = port
 				except:
 					raise IOError("Could not open port %s" % port)
 
@@ -117,6 +119,7 @@ class CCLibProxy:
 
 				# If ping fails, we will get an exception
 				self.sendFrame(CMD_PING)
+				self.port = port.device
 				return
 
 			except:

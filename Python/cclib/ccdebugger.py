@@ -60,7 +60,7 @@ def openCCDebugger( port, driver=None, enterDebug=False ):
 	inst.initialize()
 
 	# Log message
-	print("INFO: Found a %s chip on %s" % ( inst.chipName(), port ))
+	print("INFO: Found a %s chip on %s" % ( inst.chipName(), proxy.port ))
 
 	# Get info
 	print("\nChip information:")
