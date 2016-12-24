@@ -13,14 +13,14 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+from __future__ import print_function
+from cclib.chip import ChipDriver
 import sys
 import time
-from cclib.chip import ChipDriver
 
 class CC2510(ChipDriver):
 	"""
@@ -69,7 +69,7 @@ class CC2510(ChipDriver):
 			'usb'   : 0,
 			'sram'  : 2
 		}
-		
+
 		# Populate variables
 		self.flashSize = self.chipInfo['flash'] * 1024
 		#all cc251x have 0x400 as flash page size
@@ -106,7 +106,7 @@ class CC2510(ChipDriver):
 		"""
 		Write any size of buffer in the XDATA region
 		"""
-		
+
 		# Setup DPTR
 		a = self.instri( 0x90, offset )		# MOV DPTR,#data16
 
@@ -157,7 +157,7 @@ class CC2510(ChipDriver):
 
 	def setRegister( self, reg, v ):
 		"""
-		Update the value of the 
+		Update the value of the
 		"""
 		return self.instr( 0x75, reg, v )	# MOV direct,#data
 
@@ -169,11 +169,11 @@ class CC2510(ChipDriver):
 		#a = (a & 0xF8) | (bank & 0x07)
 		#return self.setRegister( 0xC7, a )
 		return self.instr(0x75, 0xC7, bank*16 + 1);
-		
+
 
 	def selectFlashBank(self, bank):
 		"""
-		Select a bank for 
+		Select a bank for
 		"""
 		return self.setRegister( 0x9F, bank & 0x07 )
 
@@ -247,127 +247,127 @@ class CC2510(ChipDriver):
 	###############################################
 	# cc251x
 	###############################################
-	
+
 	def readFlashPage(self, address):
 		if (not self.debug_active):
-			print "ERROR: not in debug mode! did you forget a enter() call?\n"
+			print("ERROR: not in debug mode! did you forget a enter() call?\n")
 			sys.exit(2)
 		return self.readCODE(address & 0x7FFFF, self.flashPageSize)
-	
+
 	def writeFlashPage(self, address, inputArray, erase_page=True):
 		if len(inputArray) != self.flashPageSize:
 			raise IOError("input data size != flash page size!")
-		
+
 		if (not self.debug_active):
-			print "ERROR: not in debug mode! did you forget a enter() call?\n"
+			print("ERROR: not in debug mode! did you forget a enter() call?\n")
 			sys.exit(2)
 
 		#calc words per flash page
 		words_per_flash_page = self.flashPageSize / self.flashWordSize
-		
+
 		#print "words_per_flash_page = %d" % (words_per_flash_page)
 		#print "flashWordSize = %d" % (self.flashWordSize)
-		if (erase_page): 
-			print "[page erased]",
-			
+		if (erase_page):
+			print("[page erased]", end=' ')
+
 		routine8_1 = [
 			#see http://www.ti.com/lit/ug/swra124/swra124.pdf page 11
-			0x75, 0xAD, ((address >> 8) / self.flashWordSize) & 0x7E, 	#MOV FADDRH, #imm; 
+			0x75, 0xAD, ((address >> 8) / self.flashWordSize) & 0x7E, 	#MOV FADDRH, #imm;
 			0x75, 0xAC, 0x00						#MOV FADDRL, #00;
 		]
 		routine8_erase = [
-			0x75, 0xAE, 0x01,						#MOV FLC, #01H; // ERASE 
-			#; Wait for flash erase to complete 
-			0xE5, 0xAE,							#eraseWaitLoop:  MOV A, FLC; 
+			0x75, 0xAE, 0x01,						#MOV FLC, #01H; // ERASE
+			#; Wait for flash erase to complete
+			0xE5, 0xAE,							#eraseWaitLoop:  MOV A, FLC;
 			0x20, 0xE7, 0xFB						#JB ACC_BUSY, eraseWaitLoop;
 		]
 		routine8_2 = [
-			#; Initialize the data pointer 
-			0x90, 0xF0, 0x00,						#MOV DPTR, #0F000H; 
-			#; Outer loops 
-			0x7F, (((words_per_flash_page)>>8)&0xFF),			#MOV R7, #imm; 
-			0x7E, ((words_per_flash_page)&0xFF),				#MOV R6, #imm; 
-			0x75, 0xAE, 0x02,						#MOV FLC, #02H; // WRITE 
-			#; Inner loops 
-			0x7D, self.flashWordSize,					#writeLoop:          MOV R5, #imm; 
-			0xE0,								#writeWordLoop:          MOVX A, @DPTR; 
-			0xA3,								#INC DPTR; 
-			0xF5, 0xAF,							#MOV FWDATA, A;  
-			0xDD, 0xFA,							#DJNZ R5, writeWordLoop; 
-			#; Wait for completion 
-			0xE5, 0xAE,							#writeWaitLoop:      MOV A, FLC; 
-			0x20, 0xE6, 0xFB,						#JB ACC_SWBSY, writeWaitLoop; 
-			0xDE, 0xF1,							#DJNZ R6, writeLoop; 
-			0xDF, 0xEF,							#DJNZ R7, writeLoop; 
+			#; Initialize the data pointer
+			0x90, 0xF0, 0x00,						#MOV DPTR, #0F000H;
+			#; Outer loops
+			0x7F, (((words_per_flash_page)>>8)&0xFF),			#MOV R7, #imm;
+			0x7E, ((words_per_flash_page)&0xFF),				#MOV R6, #imm;
+			0x75, 0xAE, 0x02,						#MOV FLC, #02H; // WRITE
+			#; Inner loops
+			0x7D, self.flashWordSize,					#writeLoop:          MOV R5, #imm;
+			0xE0,								#writeWordLoop:          MOVX A, @DPTR;
+			0xA3,								#INC DPTR;
+			0xF5, 0xAF,							#MOV FWDATA, A;
+			0xDD, 0xFA,							#DJNZ R5, writeWordLoop;
+			#; Wait for completion
+			0xE5, 0xAE,							#writeWaitLoop:      MOV A, FLC;
+			0x20, 0xE6, 0xFB,						#JB ACC_SWBSY, writeWaitLoop;
+			0xDE, 0xF1,							#DJNZ R6, writeLoop;
+			0xDF, 0xEF,							#DJNZ R7, writeLoop;
 			#set green led for debugging info (DO NOT USE THIS!)
 			#LED_GREEN_DIR |= (1<<LED_GREEN_PIN);
 			#0x43, 0xFF, 0x18,	#      [24]  935         orl     _P2DIR,#0x10
 			#LED_GREEN_PORT = (1<<LED_GREEN_PIN);
 			#0x75, 0xA0, 0x18,	#      [24]  937         mov     _P2,#0x10
 			#; Done with writing, fake a breakpoint in order to HALT the cpu
-			0xA5								#DB 0xA5; 
+			0xA5								#DB 0xA5;
 		]
-		
-		#build routine 
+
+		#build routine
 		routine = routine8_1
 		if (erase_page):
 			routine += routine8_erase
 		routine += routine8_2
-		
+
 		#add led code to flash code (for debugging)
 		#aroutine = led_routine + routine
 		#routine = routine + led_routine
-		
+
 		#for x in routine:
 		#	print "%02X" % (x),
-		
+
 		#halt CPU
 		self.halt()
-		
+
 		#send data to xdata memory:
-		if (self.show_debug_info): print "copying data to xdata"
+		if (self.show_debug_info): print("copying data to xdata")
 		self.writeXDATA(0xF000, inputArray)
-		
+
 		#send program to xdata mem
-		if (self.show_debug_info): print "copying flash routine to xdata"
+		if (self.show_debug_info): print("copying flash routine to xdata")
 		self.writeXDATA(0xF000 + self.flashPageSize, routine)
-	
-		if (self.show_debug_info): print "executing code"
-		#execute MOV MEMCTR, (bank * 16) + 1; 
+
+		if (self.show_debug_info): print("executing code")
+		#execute MOV MEMCTR, (bank * 16) + 1;
 		self.instr(0x75, 0xC7, 0x51)
-		
+
 		#set PC to start of program
 		self.setPC(0xF000 + self.flashPageSize)
-		
+
 		#start program exec, will continue after routine exec due to breakpoint
 		self.resume()
-		
-		
-		if (self.show_debug_info): print "page write running",
-		
+
+
+		if (self.show_debug_info): print("page write running", end=' ')
+
 		#set some timeout (2 seconds)
 		timeout = 200
 		while (timeout > 0):
 			#show progress
-			if (self.show_debug_info): 
-				print ".",
+			if (self.show_debug_info):
+				print(".", end=' ')
 				sys.stdout.flush()
 			#check status (bit 0x20 = cpu halted)
 			if ((self.getStatus() & 0x20 ) != 0):
-				if (self.show_debug_info): print "done"
+				if (self.show_debug_info): print("done")
 				break
 			#timeout increment
 			timeout -= 1
 			#delay (10ms)
 			time.sleep(0.01)
-			
-		
+
+
 		if (timeout <=0):
 			raise IOError("flash write timed out!")
-		
+
 		self.halt()
-		
-		if (self.show_debug_info): print "done"
+
+		if (self.show_debug_info): print("done")
 
 
 	###############################################
@@ -469,13 +469,13 @@ class CC2510(ChipDriver):
 
 			# Check if we should show progress
 			if showProgress:
-				print "\r    Progress %0.0f%%... " % (iOfs*100/len(data)),
+				print("\r    Progress %0.0f%%... " % (iOfs*100/len(data)), end=' ')
 				sys.stdout.flush()
 
 			# Get next page
 			iLen = min( len(data) - iOfs, self.bulkBlockSize )
 
-			# Update DMA configuration if we have less than bulk-block size data 
+			# Update DMA configuration if we have less than bulk-block size data
 			if (iLen < self.bulkBlockSize):
 				self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=iLen, srcInc=0, dstInc=1, priority=1, interrupt=True )
 				self.configDMAChannel( 1, 0x0000, 0x6273, 0x12, tlen=iLen, srcInc=1, dstInc=0, priority=2, interrupt=True )
@@ -543,7 +543,7 @@ class CC2510(ChipDriver):
 				for i in range(0, iLen):
 					if verifyBytes[i] != data[iOfs+i]:
 						if flashRetries < 3:
-							print "\n[Flash Error at @0x%04x, will retry]" % (fAddr+i)
+							print("\n[Flash Error at @0x%04x, will retry]" % (fAddr+i))
 							flashRetries += 1
 							continue
 						else:
@@ -554,4 +554,4 @@ class CC2510(ChipDriver):
 			iOfs += iLen
 
 		if showProgress:
-			print "\r    Progress 100%... OK"
+			print("\r    Progress 100%... OK")

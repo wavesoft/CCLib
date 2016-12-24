@@ -13,15 +13,14 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+from __future__ import print_function
+from cclib.chip import ChipDriver
 import sys
 import time
-from cclib.chip import ChipDriver
-
 
 # From the SWRU191F user guide, section 3.6, CHIPID register
 chipIDs = {
@@ -162,7 +161,7 @@ class CC254X(ChipDriver):
 
 	def setRegister( self, reg, v ):
 		"""
-		Update the value of the 
+		Update the value of the
 		"""
 		return self.instr( 0x75, reg, v )	# MOV direct,#data
 
@@ -176,7 +175,7 @@ class CC254X(ChipDriver):
 
 	def selectFlashBank(self, bank):
 		"""
-		Select a bank for 
+		Select a bank for
 		"""
 		return self.setRegister( 0x9F, bank & 0x07 )
 
@@ -266,8 +265,8 @@ class CC254X(ChipDriver):
 		# Commit
 		self.writeConfig(a)
 
-	def configDMAChannel(self, index, srcAddr, dstAddr, trigger, vlen=0, tlen=1, 
-		word=False, transferMode=0, srcInc=0, dstInc=0, interrupt=False, m8=True, 
+	def configDMAChannel(self, index, srcAddr, dstAddr, trigger, vlen=0, tlen=1,
+		word=False, transferMode=0, srcInc=0, dstInc=0, interrupt=False, m8=True,
 		priority=0, memBase=0x1000):
 		"""
 		Create a DMA buffer and place it in memory
@@ -501,7 +500,7 @@ class CC254X(ChipDriver):
 		Set the ERASE bit in the flash control register
 		"""
 
-		# Set flash ERASE bit 
+		# Set flash ERASE bit
 		a = self.readXDATA(0x6270, 1)
 		a[0] |= 0x01
 		return self.writeXDATA(0x6270, a)
@@ -531,13 +530,13 @@ class CC254X(ChipDriver):
 
 			# Check if we should show progress
 			if showProgress:
-				print "\r    Progress %0.0f%%... " % (iOfs*100/len(data)),
+				print("\r    Progress %0.0f%%... " % (iOfs*100/len(data)), end=' ')
 				sys.stdout.flush()
 
 			# Get next page
 			iLen = min( len(data) - iOfs, self.bulkBlockSize )
 
-			# Update DMA configuration if we have less than bulk-block size data 
+			# Update DMA configuration if we have less than bulk-block size data
 			if (iLen < self.bulkBlockSize):
 				self.configDMAChannel( 0, 0x6260, 0x0000, 0x1F, tlen=iLen, srcInc=0, dstInc=1, priority=1, interrupt=True )
 				self.configDMAChannel( 1, 0x0000, 0x6273, 0x12, tlen=iLen, srcInc=1, dstInc=0, priority=2, interrupt=True )
@@ -607,4 +606,4 @@ class CC254X(ChipDriver):
 			iOfs += iLen
 
 		if showProgress:
-			print "\r    Progress 100%... OK"
+			print("\r    Progress 100%... OK")

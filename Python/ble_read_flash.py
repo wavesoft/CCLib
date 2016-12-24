@@ -12,11 +12,11 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+from __future__ import print_function
 from cclib import CCHEXFile, getOptions, openCCDebugger
 from cclib.extensions.bluegiga import BlueGigaCCDebugger
 import sys
@@ -28,11 +28,11 @@ opts = getOptions("BlueGiga-Specific CCDebugger Flash Reader Tool", hexOut=True)
 try:
 	dbg = openCCDebugger(opts['port'], enterDebug=opts['enter'], driver=BlueGigaCCDebugger)
 except Exception as e:
-	print "ERROR: %s" % str(e)
+	print("ERROR: %s" % str(e))
 	sys.exit(1)
 
 # Get serial number
-print "\nReading %i KBytes to %s..." % (dbg.chipInfo['flash'], opts['out'])
+print("\nReading %i KBytes to %s..." % (dbg.chipInfo['flash'], opts['out']))
 hexFile = CCHEXFile(opts['out'])
 
 # Read in chunks of 4Kb (for UI-update purposes)
@@ -45,15 +45,15 @@ for i in range(0, int(dbg.chipInfo['flash'] / 4)):
 	hexFile.stack(chunk)
 
 	# Log status
-	print "\r    Progress %.0f%%..." % ( ( (i+1)*4 * 100) / dbg.chipInfo['flash'] ),
+	print("\r    Progress %.0f%%..." % ( ( (i+1)*4 * 100) / dbg.chipInfo['flash'] ), end=' ')
 	sys.stdout.flush()
 
 # Log completion
-print "\r    Progress 100%... OK"
+print("\r    Progress 100%... OK")
 
 # Save file
 hexFile.save()
 
 # Done
-print "\n\nCompleted"
-print ""
+print("\n\nCompleted")
+print("")

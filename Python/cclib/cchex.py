@@ -11,10 +11,11 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 
 def toHex(data):
 	"""
@@ -33,8 +34,8 @@ def hexdump(src, length=8):
 	Utility function to perform hex-dumps
 	"""
 	result = []
-	digits = 4 if isinstance(src, unicode) else 2
-	for i in xrange(0, len(src), length):
+	digits = 4 if isinstance(src, str) else 2
+	for i in range(0, len(src), length):
 		s = src[i:i+length]
 		hexa = b' '.join(["%0*X" % (digits, x)  for x in s])
 		text = b''.join([chr(x) if 0x20 <= x < 0x7F else b'.'  for x in s])
@@ -157,7 +158,7 @@ class CCHEXFile:
 
 	def set(self, addr, bytes):
 		"""
-		Update a memory region 
+		Update a memory region
 		"""
 
 		# Try to find a block that contains
@@ -242,13 +243,13 @@ class CCHEXFile:
 
 				# Build field bytes
 				dlen = len(bytes)
-				header = [ 
+				header = [
 						dlen,				#  0: Data field lenght
 						(addr >> 8) & 0xFF, #  1: Address High
 						addr & 0xFF,		#  2: Address Low
 						cmd 				#  3: Field type
 						]
-				
+
 				# Extend bytes
 				bytes = bytearray(header) + bytearray(bytes)
 

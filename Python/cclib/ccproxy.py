@@ -11,11 +11,11 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+from __future__ import print_function
 import serial
 import time
 
@@ -56,7 +56,7 @@ class CCLibProxy:
 
 	def __init__(self, port=None, parent=None, enterDebug=False):
 		"""
-		Initialize the CCLibProxy class 
+		Initialize the CCLibProxy class
 		"""
 
 		# If we are subclassing, just adopt properties
@@ -176,7 +176,7 @@ class CCLibProxy:
 		Exit from debug mode by resuming the CPU
 		"""
 		status = self.sendFrame(CMD_EXIT)
-		
+
 		# Update debug status
 		self.debugStatus = status
 		return status
@@ -209,7 +209,7 @@ class CCLibProxy:
 		resume program exec
 		"""
 		return self.sendFrame(CMD_RESUME)
-	
+
 	def halt(self):
 		"""
 		halt program exec
@@ -244,7 +244,7 @@ class CCLibProxy:
 		"""
 
 		# Call the appropriate instruction according
-		# to the number of bytes 
+		# to the number of bytes
 		if (c2 == None):
 			return self.sendFrame(CMD_EXEC_1, c1)
 		elif (c3 == None):
@@ -291,7 +291,7 @@ class CCLibProxy:
 		# Handle response & update debug status
 		self.debugStatus = self.readFrame()
 		return self.debugStatus
-	
+
 	def chipErase(self):
 		"""
 		Perform a chip erase

@@ -11,11 +11,11 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+from __future__ import print_function
 from cclib.ccproxy import CCLibProxy
 from cclib.cchex import toHex, fromHex
 import math
@@ -60,18 +60,18 @@ def openCCDebugger( port, driver=None, enterDebug=False ):
 	inst.initialize()
 
 	# Log message
-	print "INFO: Found a %s chip on %s" % ( inst.chipName(), port )
+	print("INFO: Found a %s chip on %s" % ( inst.chipName(), port ))
 
 	# Get info
-	print "\nChip information:"
-	print "      Chip ID : 0x%04x" % inst.chipID
-	print "   Flash size : %i Kb" % (inst.flashSize / 1024)
-	print "    Page size : %i Kb" % (inst.flashPageSize / 1024)
-	print "    SRAM size : %i Kb" % (inst.sramSize / 1024)
+	print("\nChip information:")
+	print("      Chip ID : 0x%04x" % inst.chipID)
+	print("   Flash size : %i Kb" % (inst.flashSize / 1024))
+	print("    Page size : %i Kb" % (inst.flashPageSize / 1024))
+	print("    SRAM size : %i Kb" % (inst.sramSize / 1024))
 	if inst.chipInfo['usb']:
-		print "          USB : Yes"
+		print("          USB : Yes")
 	else:
-		print "          USB : No"
+		print("          USB : No")
 
 	# Return driver
 	return inst
@@ -81,56 +81,56 @@ def renderDebugConfig(cfg):
 	Visualize debug config
 	"""
 	if (cfg & 0x10) != 0:
-		print " [X] SOFT_POWER_MODE"
+		print(" [X] SOFT_POWER_MODE")
 	else:
-		print " [ ] SOFT_POWER_MODE"
+		print(" [ ] SOFT_POWER_MODE")
 	if (cfg & 0x08) != 0:
-		print " [X] TIMERS_OFF"
+		print(" [X] TIMERS_OFF")
 	else:
-		print " [ ] TIMERS_OFF"
+		print(" [ ] TIMERS_OFF")
 	if (cfg & 0x04) != 0:
-		print " [X] DMA_PAUSE"
+		print(" [X] DMA_PAUSE")
 	else:
-		print " [ ] DMA_PAUSE"
+		print(" [ ] DMA_PAUSE")
 	if (cfg & 0x02) != 0:
-		print " [X] TIMER_SUSPEND"
+		print(" [X] TIMER_SUSPEND")
 	else:
-		print " [ ] TIMER_SUSPEND"
+		print(" [ ] TIMER_SUSPEND")
 
 def renderDebugStatus(cfg):
 	"""
 	Visualize debug status
 	"""
 	if (cfg & 0x80) != 0:
-		print " [X] CHIP_ERASE_BUSY"
+		print(" [X] CHIP_ERASE_BUSY")
 	else:
-		print " [ ] CHIP_ERASE_BUSY"
+		print(" [ ] CHIP_ERASE_BUSY")
 	if (cfg & 0x40) != 0:
-		print " [X] PCON_IDLE"
+		print(" [X] PCON_IDLE")
 	else:
-		print " [ ] PCON_IDLE"
+		print(" [ ] PCON_IDLE")
 	if (cfg & 0x20) != 0:
-		print " [X] CPU_HALTED"
+		print(" [X] CPU_HALTED")
 	else:
-		print " [ ] CPU_HALTED"
+		print(" [ ] CPU_HALTED")
 	if (cfg & 0x10) != 0:
-		print " [X] PM_ACTIVE"
+		print(" [X] PM_ACTIVE")
 	else:
-		print " [ ] PM_ACTIVE"
+		print(" [ ] PM_ACTIVE")
 	if (cfg & 0x08) != 0:
-		print " [X] HALT_STATUS"
+		print(" [X] HALT_STATUS")
 	else:
-		print " [ ] HALT_STATUS"
+		print(" [ ] HALT_STATUS")
 	if (cfg & 0x04) != 0:
-		print " [X] DEBUG_LOCKED"
+		print(" [X] DEBUG_LOCKED")
 	else:
-		print " [ ] DEBUG_LOCKED"
+		print(" [ ] DEBUG_LOCKED")
 	if (cfg & 0x02) != 0:
-		print " [X] OSCILLATOR_STABLE"
+		print(" [X] OSCILLATOR_STABLE")
 	else:
-		print " [ ] OSCILLATOR_STABLE"
+		print(" [ ] OSCILLATOR_STABLE")
 	if (cfg & 0x01) != 0:
-		print " [X] STACK_OVERFLOW"
+		print(" [X] STACK_OVERFLOW")
 	else:
-		print " [ ] STACK_OVERFLOW"
+		print(" [ ] STACK_OVERFLOW")
 
