@@ -93,9 +93,6 @@ class CCLibProxy:
 				except IOError:
 					raise IOError("Could not find CCLib_proxy device on port %s" % self.ser.name)
 
-			# Initialize chip info
-			self.readChipInfo(enterDebug)
-
 			# Check if we should enter debug mode
 			if enterDebug:
 				self.enter()
@@ -115,11 +112,11 @@ class CCLibProxy:
 		"""
 		for port in serial.tools.list_ports.comports():
 			try:
-				self.ser = serial.Serial(port.device, timeout=1)
+				self.ser = serial.Serial(port[0], timeout=1)
 
 				# If ping fails, we will get an exception
 				self.sendFrame(CMD_PING)
-				self.port = port.device
+				self.port = port[0]
 				return
 
 			except:
