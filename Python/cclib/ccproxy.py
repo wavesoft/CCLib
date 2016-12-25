@@ -76,13 +76,13 @@ class CCLibProxy:
 		else:
 
 			# If we don't have a port specified perform autodetect
-			if port is None:
+			if port is None or port == 'auto':
 				self.detectPort()
 
 			else:
 				# Open port
 				try:
-					self.ser = serial.Serial(port, timeout=1)
+					self.ser = serial.Serial(port)
 					self.port = port
 				except:
 					raise IOError("Could not open port %s" % port)
@@ -110,9 +110,25 @@ class CCLibProxy:
 		Iterate over system COM ports in order to locate a port that the proxy
 		responds upon.
 		"""
-		for port in serial.tools.list_ports.comports():
+		print("NOTE: Performing auto-detection (use -p to specify port manually)")
+
+		# Prioritize known ports, since on linux and osx scanning
+		# weird ports will cost more
+		ports = []
+		priority_names =  ['acm', 'usb', 'ttys']
+		all_ports = list(serial.tools.list_ports.comports())
+		for name in priority_names:
+			for i in range(0, len(all_ports)):
+				if name.lower() in all_ports[i][0]:
+					ports.append(all_ports[i])
+					all_ports.pop(i)
+		ports += all_ports
+
+		# Try to ping each one
+		for port in ports:
 			try:
-				self.ser = serial.Serial(port[0], timeout=1)
+				print("INFO: Checking %s" % port[0])
+				self.ser = serial.Serial(port[0])
 
 				# If ping fails, we will get an exception
 				self.sendFrame(CMD_PING)
@@ -155,8 +171,12 @@ class CCLibProxy:
 		# Handle error responses
 		if status == ANS_ERROR:
 			if raiseException:
-				if bL == 0x02:
+				if bL == 0x01:
+					raise IOError("CCDebugger is not properly initialized. Check your arduino sketch!")
+				elif bL == 0x02:
 					raise IOError("The chip is not in debug mode! Use the '-E' option (--help for more)")
+				elif bL == 0x03:
+					raise IOError("The chip is not responding. Check your connection and/or wiring!")
 				else:
 					raise IOError("CCDebugger responded with an error (0x%02x)" % bL)
 			else:

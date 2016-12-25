@@ -13,13 +13,18 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *  
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef CCDEBUGGER_H
 #define CCDEBUGGER_H
+
+#define CC_ERROR_NONE           0
+#define CC_ERROR_NOT_ACTIVE     1
+#define CC_ERROR_NOT_DEBUGGING  2
+#define CC_ERROR_NOT_WIRED      3
 
 // For arduino bindings
 #include "Arduino.h"
@@ -92,7 +97,7 @@ public:
    * resume program exec
    */
   byte resume();
-  
+
   /**
    * halt program exec
    */
@@ -130,7 +135,7 @@ public:
   /**
    * Wait until we are ready to read & Switch to read mode
    */
-  byte switchRead();
+  byte switchRead( byte maxWaitCycles = 255 );
 
   /**
    * Switch to write mode
@@ -172,7 +177,7 @@ private:
 
   /**
    * Local properties
-   */ 
+   */
   int       pinRST;
   int       pinDC;
   int       pinDD_I;

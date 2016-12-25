@@ -13,7 +13,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *  
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -46,7 +46,7 @@
 /**
  * Initialize CC Debugger class
  */
-CCDebugger::CCDebugger( int pinRST, int pinDC, int pinDD_I, int pinDD_O ) 
+CCDebugger::CCDebugger( int pinRST, int pinDC, int pinDD_I, int pinDD_O )
 {
 
   // Keep references
@@ -89,7 +89,7 @@ CCDebugger::CCDebugger( int pinRST, int pinDC, int pinDD_I, int pinDD_O )
 
   // We are active by default
   active = true;
-  
+
 };
 
 /**
@@ -115,11 +115,11 @@ void CCDebugger::setLED( int pinReadLED, int pinWriteLED )
 /**
  * Activate/Deactivate debugger
  */
-void CCDebugger::setActive( boolean on ) 
+void CCDebugger::setActive( boolean on )
 {
 
   // Reset error flag
-  errorFlag = 0;
+  errorFlag = CC_ERROR_NONE;
 
   // Continue only if active
   if (on == this->active) return;
@@ -175,7 +175,7 @@ void CCDebugger::setActive( boolean on )
       pinMode(pinWriteLED,      INPUT);
       digitalWrite(pinWriteLED, LOW);
     }
-    
+
   }
 }
 
@@ -205,17 +205,17 @@ void cc_delay( unsigned char d )
 /**
  * Enter debug mode
  */
-byte CCDebugger::enter() 
+byte CCDebugger::enter()
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (pinWriteLED) digitalWrite(pinWriteLED, HIGH);
   // =============
 
   // Reset error flag
-  errorFlag = 0;
+  errorFlag = CC_ERROR_NONE;
 
   // Enter debug mode
   digitalWrite(pinRST, LOW);
@@ -245,14 +245,14 @@ byte CCDebugger::enter()
 /**
  * Write a byte to the debugger
  */
-byte CCDebugger::write( byte data ) 
+byte CCDebugger::write( byte data )
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   };
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
   if (pinWriteLED) digitalWrite(pinWriteLED, HIGH);
@@ -293,14 +293,14 @@ byte CCDebugger::write( byte data )
 /**
  * Wait until input is ready for reading
  */
-byte CCDebugger::switchRead()
+byte CCDebugger::switchRead(byte maxWaitCycles)
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
   if (pinReadLED) digitalWrite(pinReadLED, HIGH);
@@ -328,9 +328,16 @@ byte CCDebugger::switchRead()
 
     // Let next function know that we did wait
     didWait = 1;
+
+    // Check if we ran out if wait cycles
+    if (!--maxWaitCycles) {
+      errorFlag = CC_ERROR_NOT_WIRED;
+      if (pinReadLED) digitalWrite(pinReadLED, LOW);
+      return 0;
+    }
   }
 
-  // Wait t(sample_wait) 
+  // Wait t(sample_wait)
   if (didWait) cc_delay(2);
 
   // =============
@@ -353,7 +360,7 @@ byte CCDebugger::switchWrite()
 byte CCDebugger::read()
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (pinReadLED) digitalWrite(pinReadLED, HIGH);
@@ -418,14 +425,14 @@ void CCDebugger::setDDDirection( byte direction )
 /**
  * Exit from debug mode
  */
-byte CCDebugger::exit() 
+byte CCDebugger::exit()
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -434,7 +441,7 @@ byte CCDebugger::exit()
   write( instr[I_RESUME] ); // RESUME
   switchRead();
   bAns = read(); // debug status
-  switchWrite(); 
+  switchWrite();
 
   inDebugMode = 0;
 
@@ -445,11 +452,11 @@ byte CCDebugger::exit()
  */
 byte CCDebugger::getConfig() {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -458,7 +465,7 @@ byte CCDebugger::getConfig() {
   write( instr[I_RD_CONFIG] ); // RD_CONFIG
   switchRead();
   bAns = read(); // Config
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -468,11 +475,11 @@ byte CCDebugger::getConfig() {
  */
 byte CCDebugger::setConfig( byte config ) {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -493,11 +500,11 @@ byte CCDebugger::setConfig( byte config ) {
 byte CCDebugger::exec( byte oc0 )
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -507,7 +514,7 @@ byte CCDebugger::exec( byte oc0 )
   write( oc0 );
   switchRead();
   bAns = read(); // Accumulator
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -518,11 +525,11 @@ byte CCDebugger::exec( byte oc0 )
 byte CCDebugger::exec( byte oc0, byte oc1 )
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -533,7 +540,7 @@ byte CCDebugger::exec( byte oc0, byte oc1 )
   write( oc1 );
   switchRead();
   bAns = read(); // Accumulator
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -544,11 +551,11 @@ byte CCDebugger::exec( byte oc0, byte oc1 )
 byte CCDebugger::exec( byte oc0, byte oc1, byte oc2 )
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -560,7 +567,7 @@ byte CCDebugger::exec( byte oc0, byte oc1, byte oc2 )
   write( oc2 );
   switchRead();
   bAns = read(); // Accumulator
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -571,11 +578,11 @@ byte CCDebugger::exec( byte oc0, byte oc1, byte oc2 )
 byte CCDebugger::execi( byte oc0, unsigned short c0 )
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -587,7 +594,7 @@ byte CCDebugger::execi( byte oc0, unsigned short c0 )
   write(  c0 & 0xFF );
   switchRead();
   bAns = read(); // Accumulator
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -597,11 +604,11 @@ byte CCDebugger::execi( byte oc0, unsigned short c0 )
  */
 unsigned short CCDebugger::getChipID() {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -614,7 +621,7 @@ unsigned short CCDebugger::getChipID() {
   bAns = bRes << 8;
   bRes = read(); // Low order
   bAns |= bRes;
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -624,11 +631,11 @@ unsigned short CCDebugger::getChipID() {
  */
 unsigned short CCDebugger::getPC() {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -641,7 +648,7 @@ unsigned short CCDebugger::getPC() {
   bAns = bRes << 8;
   bRes = read(); // Low order
   bAns |= bRes;
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -651,11 +658,11 @@ unsigned short CCDebugger::getPC() {
  */
 byte CCDebugger::getStatus() {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -664,7 +671,7 @@ byte CCDebugger::getStatus() {
   write( instr[I_READ_STATUS] ); // READ_STATUS
   switchRead();
   bAns = read(); // debug status
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -674,11 +681,11 @@ byte CCDebugger::getStatus() {
  */
 byte CCDebugger::step() {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -687,7 +694,7 @@ byte CCDebugger::step() {
   write( instr[I_STEP_INSTR] ); // STEP_INSTR
   switchRead();
   bAns = read(); // Accumulator
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -697,11 +704,11 @@ byte CCDebugger::step() {
  */
 byte CCDebugger::resume() {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -710,7 +717,7 @@ byte CCDebugger::resume() {
   write( instr[I_RESUME] ); //RESUME
   switchRead();
   bAns = read(); // Accumulator
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
@@ -720,11 +727,11 @@ byte CCDebugger::resume() {
  */
 byte CCDebugger::halt() {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   }
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -743,11 +750,11 @@ byte CCDebugger::halt() {
 byte CCDebugger::chipErase()
 {
   if (!active) {
-    errorFlag = 1;
+    errorFlag = CC_ERROR_NOT_ACTIVE;
     return 0;
   };
   if (!inDebugMode) {
-    errorFlag = 2;
+    errorFlag = CC_ERROR_NOT_DEBUGGING;
     return 0;
   }
 
@@ -756,7 +763,7 @@ byte CCDebugger::chipErase()
   write( instr[I_CHIP_ERASE] ); // CHIP_ERASE
   switchRead();
   bAns = read(); // Debug status
-  switchWrite(); 
+  switchWrite();
 
   return bAns;
 }
