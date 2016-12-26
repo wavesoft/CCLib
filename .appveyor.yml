@@ -17,4 +17,4 @@ install:
 build: off
 
 test_script:
-  - "SET PYTHONPATH=Python && build.cmd %PYTHON%\\python.exe -m unittest discover"
+  - "cd Python/tests && SET PYTHONPATH=.. && %PYTHON%\\python.exe -m unittest discover"
