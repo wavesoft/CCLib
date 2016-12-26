@@ -17,4 +17,4 @@ install:
 build: off
 
 test_script:
-  - "cd Python/tests && SET PYTHONPATH=.. && %PYTHON%\\python.exe -m unittest discover"
+  - ".appveyor-test.bat"
