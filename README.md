@@ -1,7 +1,7 @@
 
 # CCLib
 
-[![Build Status (Travis)](https://travis-ci.org/wavesoft/CCLib.svg?branch=master)](https://travis-ci.org/wavesoft/CCLib) [![Build Status (AppVeyor)](https://img.shields.io/appveyor/ci/wavesoft/CCLib/master.svg)](https://ci.appveyor.com/project/wavesoft/cclib) [![Join the chat at https://gitter.im/wavesoft/CCLib](https://badges.gitter.im/wavesoft/CCLib.svg)](https://gitter.im/wavesoft/CCLib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status (Travis)](https://travis-ci.org/wavesoft/CCLib.svg?branch=master)](https://travis-ci.org/wavesoft/CCLib) [![Build Status (AppVeyor)](https://img.shields.io/appveyor/ci/wavesoft/CCLib/master.svg)](https://ci.appveyor.com/project/wavesoft/cclib) [![Join the chat at https://gitter.im/Arduino-CCLib](https://badges.gitter.im/Arduino-CCLib.svg)](https://gitter.im/Arduino-CCLib)
 
 A set of utilities to convert your Arduino board to a CC.Debugger for flashing Texas Instruments' CCxxxx chips.
 It currently supports the CC2540/41 chips ([compatibility table](#compatibility-table)) but with [your help it can support any chip](#contributing-other-chip-drivers) compatible with the CC.Debugger protocol.
