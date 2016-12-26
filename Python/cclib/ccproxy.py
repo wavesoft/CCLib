@@ -16,11 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
+import sys
+import time
 import glob
 import serial
 import serial.tools.list_ports
-import sys
-import time
 
 # Command constants
 CMD_ENTER     = 0x01
@@ -194,7 +194,7 @@ class CCLibProxy:
 		# Otherwise we are good
 		return (bH << 8) | bL
 
-	def sendFrame(self, cmd, c1=0,c2=0,c3=0,raiseException=True ):
+	def sendFrame(self, cmd, c1=0, c2=0 ,c3=0, raiseException=True ):
 		"""
 		Send the specified frame to the output queue
 		"""

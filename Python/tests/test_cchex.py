@@ -24,7 +24,7 @@ from binascii import unhexlify
 
 def temp_hexfile(contents):
     hexfile = NamedTemporaryFile(suffix='.hex')
-    hexfile.write(contents)
+    hexfile.write(contents.translate('UTF-8').encode())
     hexfile.seek(0)
     return hexfile
 
@@ -54,6 +54,6 @@ class TestCCHEXFile(TestCase):
 
             assert len(cchex.memBlocks) == 2
             assert cchex.memBlocks[0].addr == 0x0100
-            assert cchex.memBlocks[0].bytes == "\x7F" * 16
+            assert cchex.memBlocks[0].bytes == b"\x7F" * 16
             assert cchex.memBlocks[1].addr == 0x0500
-            assert cchex.memBlocks[1].bytes == "\x3D" * 16
+            assert cchex.memBlocks[1].bytes == b"\x3D" * 16

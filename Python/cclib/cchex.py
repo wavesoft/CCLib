@@ -257,7 +257,8 @@ class CCHEXFile:
 				csum = self._checksum(bytes)
 
 				# Write to file
-				f.write(":%s%02x\n" % (toHex(bytes), csum))
+				f.write((":%s%02x\n" % (toHex(bytes), csum)) \
+					.translate('UTF-8').encode())
 
 			# Handle memory blocks
 			hexBlockOfs = 0
