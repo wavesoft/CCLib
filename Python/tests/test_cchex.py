@@ -24,7 +24,7 @@ from binascii import unhexlify
 
 def temp_hexfile(contents):
     hexfile = NamedTemporaryFile(suffix='.hex')
-    hexfile.write(contents.translate('UTF-8').encode())
+    hexfile.write(contents.encode(encoding='UTF-8'))
     hexfile.seek(0)
     return hexfile
 
