@@ -1,6 +1,8 @@
 
 # CCLib
 
+[![Build Status (Travis)](https://travis-ci.org/wavesoft/CCLib.svg?branch=master)](https://travis-ci.org/wavesoft/CCLib) [![Build Status (AppVeyor)](https://img.shields.io/appveyor/ci/wavesoft/CCLib/master.svg)](https://ci.appveyor.com/project/wavesoft/cclib) [![Join the chat at https://gitter.im/wavesoft/CCLib](https://badges.gitter.im/wavesoft/CCLib.svg)](https://gitter.im/wavesoft/CCLib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 A set of utilities to convert your Arduino board to a CC.Debugger for flashing Texas Instruments' CCxxxx chips.
 It currently supports the CC2540/41 chips ([compatibility table](#compatibility-table)) but with [your help it can support any chip](#contributing-other-chip-drivers) compatible with the CC.Debugger protocol.
 
@@ -23,13 +25,13 @@ For the DD Pin:
  <CC_DD_O> --[ 100k ]-- <CC_DD_I> --[ 200k ]-- <GND>
                             |
                            {DD}
- 
+
 For the DC Pin:
 
  <CC_DC> --[ 100k ]-- {DC} --[ 200k ]-- <GND>
- 
+
 For the RST Pin:
- 
+
  <CC_RST> --[ 100k ]-- {RST} --[ 200k ]-- <GND>
 ```
 
@@ -234,7 +236,7 @@ This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
- 
+
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
