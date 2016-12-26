@@ -41,7 +41,7 @@ class TestCCHEXFile(TestCase):
             assert len(cchex.memBlocks) == 1
             memBlock = cchex.memBlocks[0]
             assert memBlock.addr == int(offset, 16)
-            assert memBlock.bytes == unhexlify(data)
+            assert memBlock.bytes == unhexlify(data.encode(encoding='UTF-8'))
 
     def test_load_creates_correct_noncontinuous_memblocks(self):
         lines = [
