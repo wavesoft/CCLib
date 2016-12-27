@@ -331,8 +331,14 @@ byte CCDebugger::switchRead(byte maxWaitCycles)
 
     // Check if we ran out if wait cycles
     if (!--maxWaitCycles) {
+
+      // If we are waiting for too long, we have lost the chip,
+      // so also assume we are out of debugging mode
       errorFlag = CC_ERROR_NOT_WIRED;
+      inDebugMode = 0;
+
       if (pinReadLED) digitalWrite(pinReadLED, LOW);
+
       return 0;
     }
   }
@@ -742,6 +748,7 @@ byte CCDebugger::halt() {
   bAns = read(); // Accumulator
   switchWrite();
 
+  return bAns;
 }
 
 /**

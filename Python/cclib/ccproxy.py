@@ -194,7 +194,7 @@ class CCLibProxy:
 		# Otherwise we are good
 		return (bH << 8) | bL
 
-	def sendFrame(self, cmd, c1=0, c2=0 ,c3=0, raiseException=True ):
+	def sendFrame(self, cmd, c1=0, c2=0, c3=0, raiseException=True ):
 		"""
 		Send the specified frame to the output queue
 		"""
