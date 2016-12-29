@@ -51,3 +51,10 @@ class TestCCHEXFile(TestCase):
     assert cchex.memBlocks[0].bytes == b"\x7F" * 16
     assert cchex.memBlocks[1].addr == 0x0500
     assert cchex.memBlocks[1].bytes == b"\x3D" * 16
+
+  def test_load_works_with_dos_style_line_endings(self):
+    hexfile = temp_hexfile(":0B0010006164647265737320676170A7\r\n")
+    cchex = CCHEXFile()
+    cchex.load(hexfile)
+
+    assert len(cchex.memBlocks) == 1
