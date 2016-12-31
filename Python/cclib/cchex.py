@@ -314,7 +314,7 @@ class CCHEXFile:
 				i += 1
 
 				# Trim ending newline
-				line = line[0:-1]
+				line = line.rstrip()
 
 				# Validate format
 				if not line[0:1] == ":":
