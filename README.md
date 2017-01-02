@@ -221,7 +221,7 @@ If the status code is `ANS_OK(1)`, the `ResH:ResL` word contains the resulting w
 
 ## Disclaimer
 
-Users have successfully flashed various BlueGiga BLE112/BLE113 (CC2540) modules with this solution, however the developers DO NOT GURANTEE THAT THIS WILL WORK IN YOUR CASE! **The developers cannot be held liable for any damage caused by using this library, directly or indirectly. YOU ARE USING THIS CODE SOLELY AT YOUR OWN RISK!**
+Users have successfully flashed various BlueGiga BLE112/BLE113 (CC2540) modules with this solution, however the developers DO NOT GUARANTEE THAT THIS WILL WORK IN YOUR CASE! **The developers cannot be held liable for any damage caused by using this library, directly or indirectly. YOU ARE USING THIS CODE SOLELY AT YOUR OWN RISK!**
 
 ## License
 
