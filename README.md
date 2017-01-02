@@ -4,7 +4,7 @@
 [![Build Status (Travis)](https://travis-ci.org/wavesoft/CCLib.svg?branch=master)](https://travis-ci.org/wavesoft/CCLib) [![Build Status (AppVeyor)](https://img.shields.io/appveyor/ci/wavesoft/CCLib/master.svg)](https://ci.appveyor.com/project/wavesoft/cclib) [![Join the chat at https://gitter.im/Arduino-CCLib](https://badges.gitter.im/Arduino-CCLib.svg)](https://gitter.im/Arduino-CCLib)
 
 A set of utilities to convert your Arduino board to a CC.Debugger for flashing Texas Instruments' CCxxxx chips.
-It currently supports the CC2540/41 chips ([compatibility table](#compatibility-table)) but with [your help it can support any chip](#contributing-other-chip-drivers) compatible with the CC.Debugger protocol.
+It currently supports the CC2530/40/41 chips ([compatibility table](#compatibility-table)) but with [your help it can support any chip](#contributing-other-chip-drivers) compatible with the CC.Debugger protocol.
 
 Keep in mind but this more than just a set of utilities! It comes with complete, reusable Arduino and Python libraries for adding CC.Debugger support to your projects!
 
@@ -119,6 +119,24 @@ In order to flash a CCxxxx chip there is a need to invoke CPU instructions, whic
         <th>Chip ID</th>
         <th>Driver</th>
         <th>Status</th>
+    </tr>
+    <tr>
+        <td>CC2530</td>
+        <td><strong>0xa5</strong>..</td>
+        <td>CC254X</td>
+        <td>:white_check_mark: Works</td>
+    </tr>
+    <tr>
+        <td>CC2531</td>
+        <td><strong>0xb5</strong>..</td>
+        <td>CC254X</td>
+        <td>:large_orange_diamond: Looking for testers</td>
+    </tr>
+    <tr>
+        <td>CC2533</td>
+        <td><strong>0x95</strong>..</td>
+        <td>CC254X</td>
+        <td>:large_orange_diamond: Looking for testers</td>
     </tr>
     <tr>
         <td>CC2540</td>
